@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Krankomat Modern</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com;">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f8fafc; /* bg-slate-50 */
+      }
+    </style>
+    <!-- React and ReactDOM from CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel Standalone for JSX/TSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      // All application code is consolidated into this single script block.
+      // The browser will transpile and run it on the fly thanks to Babel.
+      const { useState, useEffect, useMemo } = React;
+
+      // --- from types.ts ---
+      // Interfaces are used for development clarity; Babel will correctly handle them.
+      // --- from utils/date.ts ---
+      const todayFormatted = () => {
+        const today = new Date();
+        const day = String(today.getDate()).padStart(2, '0');
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const year = today.getFullYear();
+        return `${day}.${month}.${year}`;
+      };
+
+      const getDayOfWeek = (dateStr) => {
+        const parts = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        if (!parts) return null;
+
+        // DD.MM.YYYY -> YYYY-MM-DD for Date constructor
+        const date = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+        if (isNaN(date.getTime())) return null;
+
+        const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        return days[date.getDay()];
+      };
+
+      // --- from utils/template.ts ---
+      const renderTemplate = (template, context) => {
+        let rendered = template;
+        for (const key in context) {
+          const value = context[key] || '';
+          const regex = new RegExp(`{${key}}`, 'g');
+          rendered = rendered.replace(regex, value);
+        }
+        return rendered;
+      };
+      
+      // --- from constants/data.ts ---
+      const DEFAULT_USER_DATA = {
+        firstName: 'Max',
+        lastName: 'Mustermann',
+        studentId: '1234567',
+        email: 'max.mustermann@example.com',
+        studyProgram: 'EGOV',
+      };
+
+      const RECIPIENTS_DATA = [
+        { id: 1, anrede: 'Sehr geehrte Damen und Herren vom ZPD', module: 'ZPD / Ausbildungsleitung', email: 'zpd@example.com', isSelected: true },
+        { id: 2, anrede: 'Sehr geehrte Frau Prof. Dr. Schmidt', module: 'IT-Projektmanagement', email: 'schmidt@example.com', isSelected: false },
+        { id: 3, anrede: 'Sehr geehrter Herr Dr. Meier', module: 'Grundlagen der BWL', email: 'meier@example.com', isSelected: false },
+        { id: 4, anrede: 'Sehr geehrte Damen und Herren', module: 'Berufspraxisstelle', email: 'praktikum@example.com', isSelected: false },
+        { id: 5, anrede: 'Sehr geehrte Frau Müller', module: 'Datenbanken', email: 'mueller@example.com', isSelected: false },
+        { id: 6, anrede: 'Sehr geehrter Herr Weber', module: 'Software Engineering', email: 'weber@example.com', isSelected: false },
+        { id: 7, anrede: 'Sehr geehrtes Prüfungsamt-Team', module: 'HAW-Prüfungsamt', email: 'pruefungsamt@haw.example.com', isSelected: false }
+      ];
+
+      const TIMETABLE_DATA = [
+          { day: 'Montag', module: 'IT-Projektmanagement' },
+          { day: 'Dienstag', module: 'Grundlagen der BWL' },
+          { day: 'Mittwoch', module: 'Datenbanken' },
+          { day: 'Donnerstag', module: 'Software Engineering' },
+          { day: 'Freitag', module: 'IT-Projektmanagement' },
+      ];
+
+      const EMAIL_SUBJECT_TEMPLATE = "{art} EGOV 2025 {Datum} [{Vornamen} {Nachname}, {Matrikelnummer}]";
+      
+      // --- from components/Header.tsx ---
+      const Header = () => {
+        return (
+          <header className="bg-white shadow-md">
+            <div className="container mx-auto px-4 lg:px-8 py-4">
+              <h1 className="text-2xl font-bold text-slate-800">
+                Krankomat <span className="text-indigo-600">Modern</span>
+              </h1>
+              <p className="text-slate-500 mt-1">
+                Schnell und einfach eine Krank- oder Gesundmeldung per E-Mail vorbereiten.
+              </p>
+            </div>
+          </header>
+        );
+      };
+
+      // --- from components/Card.tsx ---
+      const Card = ({ title, children }) => {
+        return (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-semibold text-slate-700 border-b border-slate-200 pb-3 mb-4">
+              {title}
+            </h2>
+            <div className="space-y-4">
+              {children}
+            </div>
+          </div>
+        );
+      };
+
+      // --- from components/FormField.tsx ---
+      const FormField = ({ label, id, type = 'text', value, onChange, placeholder, className }) => {
+        return (
+          <div className={`flex flex-col ${className}`}>
+            <label htmlFor={id} className="mb-1 text-sm font-medium text-slate-600">{label}</label>
+            <input
+              id={id}
+              type={type}
+              value={value}
+              onChange={onChange}
+              placeholder={placeholder}
+              className="px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+            />
+          </div>
+        );
+      };
+      
+      // --- from components/Checkbox.tsx ---
+      const Checkbox = ({ label, checked, onChange, id }) => {
+        return (
+          <div className="flex items-center">
+            <input
+              id={id}
+              type="checkbox"
+              checked={checked}
+              onChange={onChange}
+              className="h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+            />
+            <label htmlFor={id} className="ml-2 block text-sm text-slate-700">
+              {label}
+            </label>
+          </div>
+        );
+      };
+
+      // --- from components/UserInfoPanel.tsx ---
+      const UserInfoPanel = ({
+        userData, setUserData,
+        sicknessStartDate, setSicknessStartDate,
+        sicknessEndDate, setSicknessEndDate
+      }) => {
+        const handleUserChange = (field, value) => {
+          setUserData(prev => ({ ...prev, [field]: value }));
+        };
+
+        const setTodayAsEndDate = () => {
+          setSicknessEndDate(todayFormatted());
+        };
+        
+        const noticeType = sicknessEndDate ? 'Gesundmeldung' : 'Krankmeldung';
+
+        const handleNoticeTypeButtonClick = (type) => {
+          if (type === 'Krankmeldung') {
+              setSicknessEndDate('');
+          } else if (type === 'Gesundmeldung') {
+              if (!sicknessEndDate) {
+                  setSicknessEndDate(todayFormatted());
+              }
+          }
+        };
+
+        return (
+          <Card title="Allgemeine Informationen">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="Vorname" id="firstName" value={userData.firstName} onChange={(e) => handleUserChange('firstName', e.target.value)} />
+              <FormField label="Nachname" id="lastName" value={userData.lastName} onChange={(e) => handleUserChange('lastName', e.target.value)} />
+              <FormField label="Matrikelnummer" id="studentId" value={userData.studentId} onChange={(e) => handleUserChange('studentId', e.target.value)} />
+              <FormField label="Absender-E-Mail" id="email" type="email" value={userData.email} onChange={(e) => handleUserChange('email', e.target.value)} />
+            </div>
+            <div className="border-t border-slate-200 mt-4 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <div>
+                  <div className="flex space-x-2 mb-2">
+                    <button 
+                      onClick={() => handleNoticeTypeButtonClick('Krankmeldung')}
+                      className={`px-4 py-2 text-sm rounded-md transition ${noticeType === 'Krankmeldung' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
+                    >
+                      Krankmeldung
+                    </button>
+                    <button 
+                      onClick={() => handleNoticeTypeButtonClick('Gesundmeldung')}
+                      className={`px-4 py-2 text-sm rounded-md transition ${noticeType === 'Gesundmeldung' ? 'bg-green-600 text-white font-semibold' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
+                    >
+                      Gesundmeldung
+                    </button>
+                  </div>
+                  <FormField label="Erster Krankheitstag" id="startDate" value={sicknessStartDate} onChange={e => setSicknessStartDate(e.target.value)} />
+                </div>
+                <div className="flex flex-col">
+                    <FormField label="Letzter Krankheitstag (optional)" id="endDate" value={sicknessEndDate} onChange={e => setSicknessEndDate(e.target.value)} />
+                    <button onClick={setTodayAsEndDate} className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 self-start">heute wieder gesund</button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      };
+
+      // --- from components/AbsencePanel.tsx ---
+      const AbsencePanel = ({ reasons, onToggle }) => {
+        return (
+          <Card title="Heute verpasse ich...">
+            <Checkbox id="lecture" label="Vorlesungszeit" checked={reasons.lecture} onChange={() => onToggle('lecture')} />
+            <Checkbox id="internship" label="Berufspraxis" checked={reasons.internship} onChange={() => onToggle('internship')} />
+            <Checkbox id="exam" label="Prüfungsleistung / Klausur" checked={reasons.exam} onChange={() => onToggle('exam')} />
+            <Checkbox id="partialDay" label="Rest des Tages (war schon da)" checked={reasons.partialDay} onChange={() => onToggle('partialDay')} />
+          </Card>
+        );
+      };
+      
+      // --- from components/DetailsPanel.tsx ---
+      const DetailsPanel = ({ details, onChange }) => {
+        const commentPresets = [
+            "nur 1 Tag krank",
+            "vsl. ungefähr 3 Tage krank",
+            "vsl. länger als 3 Tage, Arzt wird aufgesucht"
+        ];
+
+        const handleCommentPresetToggle = (text) => {
+          const currentComments = details.comments.split('\n').filter(line => line.trim() !== '');
+          const textExists = currentComments.includes(text);
+
+          let newComments;
+          if (textExists) {
+              newComments = currentComments.filter(c => c !== text).join('\n');
+          } else {
+              newComments = [...currentComments, text].join('\n');
+          }
+          onChange('comments', newComments);
+        };
+          
+        return (
+          <Card title="Details & Optionen">
+            <div className="grid grid-cols-2 gap-4">
+              <Checkbox id="accident" label="Unfall" checked={details.isAccident} onChange={() => onChange('isAccident', !details.isAccident)} />
+              <Checkbox id="gkv" label="GKV" checked={details.isGKV} onChange={() => onChange('isGKV', !details.isGKV)} />
+              <Checkbox id="attest" label="Attest" checked={details.hasAttest} onChange={() => onChange('hasAttest', !details.hasAttest)} />
+              <Checkbox id="eau" label="eAU" checked={details.hasEAU} onChange={() => onChange('hasEAU', !details.hasEAU)} />
+            </div>
+            <div className="mt-4">
+              <label htmlFor="comments" className="mb-1 text-sm font-medium text-slate-600">Bemerkung / voraussichtliche Dauer</label>
+              <textarea
+                id="comments"
+                value={details.comments}
+                onChange={(e) => onChange('comments', e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+              />
+              <div className="mt-2 space-y-2">
+                  {commentPresets.map(preset => (
+                       <Checkbox 
+                          key={preset}
+                          id={`preset-${preset.replace(/\s/g, '-')}`}
+                          label={preset}
+                          checked={details.comments.includes(preset)}
+                          onChange={() => handleCommentPresetToggle(preset)}
+                      />
+                  ))}
+              </div>
+            </div>
+          </Card>
+        );
+      };
+      
+      // --- from components/RecipientsPanel.tsx ---
+      const RecipientsPanel = ({ recipients, onToggle }) => {
+        return (
+          <Card title="Krankmelden bei">
+            <div className="max-h-64 overflow-y-auto pr-4 space-y-3">
+              {recipients.map(recipient => (
+                <div key={recipient.id} className="p-2 rounded-md hover:bg-slate-100 transition">
+                  <Checkbox
+                    id={`recipient-${recipient.id}`}
+                    checked={recipient.isSelected}
+                    onChange={() => onToggle(recipient.id)}
+                    label={recipient.module}
+                  />
+                  <p className="ml-6 text-xs text-slate-500">{recipient.email}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      };
+      
+      // --- from components/PreviewPanel.tsx ---
+      const CopyableField = ({ label, value }) => (
+        <div>
+          <label className="text-sm font-semibold text-slate-600">{label}</label>
+          <div className="mt-1 p-2 bg-slate-100 rounded-md text-sm text-slate-800 whitespace-pre-wrap break-words font-mono">
+            {value || '–'}
+          </div>
+        </div>
+      );
+
+      const PreviewPanel = ({ email }) => {
+        return (
+          <div className="bg-white rounded-lg shadow-md sticky top-8">
+            <div className="p-6">
+              <h2 className="text-lg font-semibold text-slate-700 border-b border-slate-200 pb-3 mb-4">
+                Vorschau & E-Mail generieren
+              </h2>
+              <div className="space-y-4">
+                <CopyableField label="Betreff" value={email.subject} />
+                <CopyableField label="An (To)" value={email.to} />
+                <CopyableField label="Kopie (CC)" value={email.ccList.join('; ')} />
+                <div>
+                  <label className="text-sm font-semibold text-slate-600">Nachricht</label>
+                  <div className="mt-1 p-3 bg-slate-100 rounded-md text-sm text-slate-800 whitespace-pre-wrap break-words h-64 overflow-y-auto border border-slate-200">
+                    {email.body}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-slate-50 p-4 border-t border-slate-200 rounded-b-lg">
+              <a
+                href={email.outlookHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                </svg>
+                E-Mail in Outlook öffnen
+              </a>
+            </div>
+          </div>
+        );
+      };
+
+      // --- from App.tsx ---
+      function App() {
+        const [userData, setUserData] = useState(DEFAULT_USER_DATA);
+        const [sicknessStartDate, setSicknessStartDate] = useState(todayFormatted());
+        const [sicknessEndDate, setSicknessEndDate] = useState('');
+        const [absenceReasons, setAbsenceReasons] = useState({
+          lecture: true,
+          internship: false,
+          exam: false,
+          partialDay: false,
+        });
+        const [recipients, setRecipients] = useState(RECIPIENTS_DATA);
+        const [details, setDetails] = useState({
+          isAccident: false,
+          isGKV: false,
+          hasAttest: false,
+          hasEAU: false,
+          comments: '',
+        });
+        
+        const noticeType = sicknessEndDate ? 'Gesundmeldung' : 'Krankmeldung';
+
+        useEffect(() => {
+          const day = getDayOfWeek(sicknessStartDate);
+          if (!day) return;
+
+          const todaysModules = TIMETABLE_DATA
+              .filter(entry => entry.day.toLowerCase() === day.toLowerCase())
+              .map(entry => entry.module.toLowerCase());
+
+          setRecipients(prevRecipients => prevRecipients.map(recipient => {
+            const recipientModule = recipient.module.toLowerCase();
+            if (recipient.module.includes('ZPD')) {
+                return { ...recipient, isSelected: true };
+            }
+            if (todaysModules.some(mod => recipientModule.includes(mod))) {
+              return { ...recipient, isSelected: true };
+            }
+            return { ...recipient, isSelected: false };
+          }));
+        }, [sicknessStartDate]);
+        
+        const handleRecipientToggle = (id) => {
+          setRecipients(recipients.map(r => r.id === id ? { ...r, isSelected: !r.isSelected } : r));
+        };
+        
+        const handleAbsenceReasonToggle = (reason) => {
+          setAbsenceReasons(prev => ({...prev, [reason]: !prev[reason]}));
+        };
+
+        const handleDetailsChange = (key, value) => {
+          setDetails(prev => ({...prev, [key]: value}));
+        };
+        
+        const generatedEmail = useMemo(() => {
+          const selectedRecipients = recipients.filter(r => r.isSelected);
+          
+          let anredeText;
+          if (selectedRecipients.length === 0) {
+            anredeText = 'Sehr geehrte Damen und Herren,';
+          } else {
+            const anreden = [...new Set(selectedRecipients.map(r => r.anrede.trim()))];
+            anredeText = `${anreden.join(',\n')},`;
+          }
+          
+          const bodyTemplate = noticeType === 'Gesundmeldung' ? `
+{anrede}
+
+hiermit melde ich mich ab dem {Datum2} wieder gesund.
+Ich war vom {Datum} bis einschließlich {Datum2} krank.
+
+Name: {Vornamen} {Nachname}
+Matrikelnummer: {Matrikelnummer}
+Studiengang: {studiengang}
+
+{bemerkung}
+
+Mit freundlichen Grüßen
+{Vornamen} {Nachname}
+` : `
+{anrede}
+
+hiermit melde ich mich für den {Datum} krank.
+{dauermeldung}
+
+Name: {Vornamen} {Nachname}
+Matrikelnummer: {Matrikelnummer}
+Studiengang: {studiengang}
+
+{bemerkung}
+
+Mit freundlichen Grüßen
+{Vornamen} {Nachname}
+`;
+
+          const context = {
+              Vornamen: userData.firstName,
+              Nachname: userData.lastName,
+              Matrikelnummer: userData.studentId,
+              Datum: sicknessStartDate,
+              Datum2: sicknessEndDate,
+              art: noticeType,
+              studiengang: userData.studyProgram,
+              anrede: anredeText,
+              bemerkung: details.comments,
+              unfall: details.isAccident ? 'ja' : 'nein',
+              attest: details.hasAttest ? 'ja' : 'nein',
+              eAU: details.hasEAU ? 'ja' : 'nein',
+              prüfungstag: absenceReasons.exam ? 'ja' : 'nein',
+              dauermeldung: sicknessEndDate ? `Ich bin voraussichtlich bis einschließlich ${sicknessEndDate} krank.` : '',
+          };
+          
+          const body = renderTemplate(bodyTemplate, context);
+          const subject = renderTemplate(EMAIL_SUBJECT_TEMPLATE, context);
+
+          const toList = selectedRecipients
+            .map(r => r.email)
+            .filter(Boolean);
+
+          const to = toList.join(';');
+          const ccList = []; // All recipients are in 'To' now.
+
+          const outlookHref = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+          return { subject, body, to: toList.join('; '), ccList, outlookHref };
+        }, [userData, noticeType, sicknessStartDate, sicknessEndDate, absenceReasons, recipients, details]);
+
+        return (
+          <div className="bg-slate-50 min-h-screen text-slate-800 font-sans">
+            <Header />
+            <main className="container mx-auto p-4 lg:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="lg:col-span-3 space-y-8">
+                  <UserInfoPanel 
+                    userData={userData}
+                    setUserData={setUserData}
+                    sicknessStartDate={sicknessStartDate}
+                    setSicknessStartDate={setSicknessStartDate}
+                    sicknessEndDate={sicknessEndDate}
+                    setSicknessEndDate={setSicknessEndDate}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <AbsencePanel 
+                      reasons={absenceReasons}
+                      onToggle={handleAbsenceReasonToggle}
+                    />
+                    <DetailsPanel 
+                      details={details}
+                      onChange={handleDetailsChange}
+                    />
+                  </div>
+                  <RecipientsPanel 
+                    recipients={recipients}
+                    onToggle={handleRecipientToggle}
+                  />
+                </div>
+                <div className="lg:col-span-2">
+                  <PreviewPanel email={generatedEmail} />
+                </div>
+              </div>
+            </main>
+          </div>
+        );
+      }
+
+      // --- from index.tsx ---
+      const rootElement = document.getElementById('root');
+      if (!rootElement) {
+        throw new Error("Could not find root element to mount to");
+      }
+
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
