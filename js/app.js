@@ -1,4 +1,5 @@
 
+
 window.Krankomat = window.Krankomat || {};
 
 Krankomat.App = {
@@ -47,6 +48,7 @@ Krankomat.App = {
         this.setupTermsModal();
         this.setupExpertModal();
         this.setupMensaModal();
+        this.setupCalendarModal();
     },
 
     setupTermsModal: function() {
@@ -205,6 +207,8 @@ Krankomat.App = {
                     if (json.sicknessEndDate) localStorage.setItem('krankomat_sicknessEndDate', JSON.stringify(json.sicknessEndDate));
                     if (json.absenceReasons) localStorage.setItem('krankomat_absenceReasons', JSON.stringify(json.absenceReasons));
                     if (json.details) localStorage.setItem('krankomat_details', JSON.stringify(json.details));
+                    if (json.calendarEvents) localStorage.setItem('krankomat_calendarEvents', JSON.stringify(json.calendarEvents));
+                    if (json.emailDirectory) localStorage.setItem('krankomat_emailDirectory', JSON.stringify(json.emailDirectory));
                     window.location.reload();
                 } catch (err) {
                     alert("Error parsing JSON");
@@ -271,8 +275,8 @@ Krankomat.App = {
             footer.classList.add('hidden');
 
             const year = currentDate.getFullYear();
-            const month = currentDate.getMonth() + 1;
-            const day = currentDate.getDate();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
             const url = `https://raw.githubusercontent.com/HAWHHCalendarBot/mensa-data/main/Mensa%20Berliner%20Tor/${year}/${month}/${day}.json`;
             
             try {
@@ -359,6 +363,130 @@ Krankomat.App = {
             footerEl.innerHTML = footerHtml;
             footerEl.classList.remove('hidden');
         }
+    },
+
+    setupCalendarModal: function() {
+        const toggleBtn = document.getElementById('calendar-toggle-btn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                const container = document.getElementById('calendar-modal-container');
+                if (container.innerHTML) {
+                    container.innerHTML = '';
+                } else {
+                    this.renderCalendarModal(container);
+                }
+            });
+        }
+    },
+
+    renderCalendarModal: function(container) {
+        container.innerHTML = `
+            <div class="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 transition-opacity duration-300" id="calendar-backdrop">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col animate-scale-in" onclick="event.stopPropagation()">
+                    <header class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
+                        <div class="flex items-center space-x-4">
+                            <button id="calendar-prev" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                            </button>
+                            <div class="text-center">
+                                <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">Stundenplan</h2>
+                                <p id="calendar-date-display" class="text-sm text-slate-500 dark:text-slate-400 font-medium"></p>
+                            </div>
+                            <button id="calendar-next" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                            </button>
+                        </div>
+                        <button id="calendar-close" class="p-2 rounded-full text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </header>
+                    <main id="calendar-content" class="p-4 sm:p-6 overflow-y-auto max-h-[60vh]">
+                        <!-- Calendar events injected here -->
+                    </main>
+                </div>
+            </div>
+        `;
+
+        let currentDate = new Date();
+        const events = Krankomat.State.data.calendarEvents || [];
+
+        const renderEvents = () => {
+            const dateDisplay = document.getElementById('calendar-date-display');
+            const content = document.getElementById('calendar-content');
+            
+            dateDisplay.innerText = currentDate.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // Format current date to match ICS parser output (DD.MM.YYYY)
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const year = currentDate.getFullYear();
+            const dateStr = `${day}.${month}.${year}`;
+
+            // Filter events
+            const daysEvents = events.filter(evt => {
+                const appDate = Krankomat.Utils.convertICSDateToAppDate(evt.start);
+                return appDate === dateStr;
+            });
+
+            if (daysEvents.length === 0) {
+                 if (events.length === 0) {
+                     content.innerHTML = `
+                        <div class="text-center py-8">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p class="text-slate-500 dark:text-slate-400">Keine Kalenderdatei geladen.</p>
+                            <p class="text-xs text-slate-400 mt-1">Bitte laden Sie eine .ics Datei im Formular hoch.</p>
+                        </div>`;
+                 } else {
+                     content.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-slate-500 dark:text-slate-400">Keine Termine an diesem Tag.</p>
+                        </div>`;
+                 }
+            } else {
+                let html = '<div class="space-y-3">';
+                daysEvents.sort((a,b) => (a.start || '').localeCompare(b.start || '')).forEach(evt => {
+                    // Extract time if present in start string (YYYYMMDDTHHMMSS)
+                    let timeStr = '';
+                    if (evt.start && evt.start.includes('T')) {
+                        const timePart = evt.start.split('T')[1];
+                        if (timePart && timePart.length >= 4) {
+                            timeStr = `${timePart.substring(0,2)}:${timePart.substring(2,4)}`;
+                        }
+                    }
+                    
+                    html += `
+                        <div class="bg-indigo-50 dark:bg-slate-700/50 p-4 rounded-lg border-l-4 border-indigo-500">
+                            <h4 class="font-bold text-slate-800 dark:text-white break-words">${evt.summary}</h4>
+                            ${timeStr ? `<div class="flex items-center mt-2 text-sm text-indigo-600 dark:text-indigo-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                ${timeStr} Uhr
+                            </div>` : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                content.innerHTML = html;
+            }
+        };
+
+        document.getElementById('calendar-backdrop').onclick = () => container.innerHTML = '';
+        document.getElementById('calendar-close').onclick = () => container.innerHTML = '';
+        
+        document.getElementById('calendar-prev').onclick = () => { 
+            currentDate.setDate(currentDate.getDate() - 1); 
+            renderEvents(); 
+        };
+        
+        document.getElementById('calendar-next').onclick = () => { 
+            currentDate.setDate(currentDate.getDate() + 1); 
+            renderEvents(); 
+        };
+
+        renderEvents();
     }
 };
 

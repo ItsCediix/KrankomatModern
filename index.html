@@ -68,6 +68,7 @@
     <div id="terms-modal-container"></div>
     <div id="expert-modal-container"></div>
     <div id="mensa-modal-container"></div>
+    <div id="calendar-modal-container"></div>
 
     <!-- Header -->
     <header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm shadow-sm sticky top-0 z-20 transition-colors duration-300 border-b border-slate-200 dark:border-slate-800">
@@ -92,6 +93,11 @@
                     <path d="M64 480H448c35.3 0 64-28.7 64-64V160c0-35.3-28.7-64-64-64H288c-10.1 0-19.6-4.7-25.6-12.8L243.2 57.6C231.1 41.5 212.1 32 192 32H64C28.7 32 0 60.7 0 96V416c0 35.3 28.7 64 64 64z"/>
                 </svg>
             </a>
+            <button id="calendar-toggle-btn" class="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/60 transition-colors" title="Stundenplan anzeigen">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5v-5z"/>
+                </svg>
+            </button>
             <button id="mensa-toggle-btn" class="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/60 transition-colors" title="Mensa-Menü anzeigen">
                 <svg class="h-6 w-6" viewBox="130 360 85 100" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
                   <g transform="matrix(1, 0, 0, 1, 112.069527, 358.127716)">
@@ -147,6 +153,7 @@
               <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 pb-4 mb-5">
                 Allgemeine Informationen
               </h2>
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div class="flex flex-col">
                     <label for="firstName" class="mb-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">Vorname</label>
@@ -155,10 +162,6 @@
                  <div class="flex flex-col">
                     <label for="lastName" class="mb-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">Nachname</label>
                     <input id="lastName" type="text" class="form-input px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white">
-                 </div>
-                 <div class="flex flex-col">
-                    <label for="studentId" class="mb-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">Matrikelnummer</label>
-                    <input id="studentId" type="text" class="form-input px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white">
                  </div>
               </div>
 
@@ -228,7 +231,18 @@
           <!-- Recipients Panel -->
           <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg">
              <div class="p-6">
-                <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 pb-4 mb-5">Krankmelden bei</h2>
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4 mb-5">
+                    <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100">Krankmelden bei</h2>
+                    <div class="flex items-center">
+                         <span id="calendar-status" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mr-2 hidden"></span>
+                         <label class="cursor-pointer inline-flex items-center justify-center p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-200 dark:border-indigo-800/50" title="Stundenplan (.ics) importieren">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                              </svg>
+                              <input type="file" id="ics-upload" accept=".ics" class="hidden">
+                         </label>
+                    </div>
+                </div>
                 <div id="recipients-list-container" class="max-h-80 overflow-y-auto pr-2 -mr-2 space-y-4">
                    <!-- Injected by JS -->
                 </div>
