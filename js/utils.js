@@ -70,15 +70,18 @@ Krankomat.Utils = {
         let currentEvent = {};
         let currentRrule = null;
         
-        for (const line of unfoldedLines) {
+        for (const rawLine of unfoldedLines) {
+            const line = rawLine.trim();
+            const upperLine = line.toUpperCase();
+            
             // Check boundaries
-            if (line.startsWith('BEGIN:VEVENT')) {
+            if (upperLine.startsWith('BEGIN:VEVENT')) {
                 inEvent = true;
                 currentEvent = {};
                 currentRrule = null;
                 continue;
             }
-            if (line.startsWith('END:VEVENT')) {
+            if (upperLine.startsWith('END:VEVENT')) {
                 inEvent = false;
                 if (currentEvent.start && currentEvent.summary) {
                     // Push the original/first event
@@ -94,13 +97,12 @@ Krankomat.Utils = {
             }
 
             if (inEvent) {
-                if (line.startsWith('DTSTART')) {
-                    // Extract value after first colon
+                if (upperLine.startsWith('DTSTART')) {
                     const idx = line.indexOf(':');
                     if (idx !== -1) {
                          currentEvent.start = line.substring(idx + 1).trim();
                     }
-                } else if (line.startsWith('SUMMARY')) {
+                } else if (upperLine.startsWith('SUMMARY')) {
                     const idx = line.indexOf(':');
                     if (idx !== -1) {
                         let summaryVal = line.substring(idx + 1).trim();
@@ -112,7 +114,13 @@ Krankomat.Utils = {
                             currentEvent.summary = summaryVal;
                         }
                     }
-                } else if (line.startsWith('RRULE')) {
+                } else if (upperLine.startsWith('LOCATION')) {
+                    const idx = line.indexOf(':');
+                    if (idx !== -1) {
+                         // Extract and clean location (unescape commas)
+                         currentEvent.location = line.substring(idx + 1).trim().replace(/\\,/g, ',');
+                    }
+                } else if (upperLine.startsWith('RRULE')) {
                     const idx = line.indexOf(':');
                     if (idx !== -1) {
                         currentRrule = line.substring(idx + 1).trim();
@@ -163,7 +171,8 @@ Krankomat.Utils = {
             // Create event
             const newEvent = {
                 summary: baseEvent.summary,
-                start: Krankomat.Utils.formatJsDateToIcsString(currentDate)
+                start: Krankomat.Utils.formatJsDateToIcsString(currentDate),
+                location: baseEvent.location // Preserve location
             };
             expandedEvents.push(newEvent);
 
