@@ -150,7 +150,13 @@ Krankomat.Utils = {
         const startDate = Krankomat.Utils.parseIcsDateStringToJsDate(baseEvent.start);
         if (!startDate) return [];
 
-        const untilDate = untilStr ? Krankomat.Utils.parseIcsDateStringToJsDate(untilStr) : null;
+        let untilDate = untilStr ? Krankomat.Utils.parseIcsDateStringToJsDate(untilStr) : null;
+        
+        // Fix for inclusive UNTIL date: If UNTIL is just a date (length 8), it implies the end of that day.
+        // We set it to 23:59:59 to ensure inclusive comparison against event start times.
+        if (untilDate && untilStr.replace('Z','').trim().length === 8) {
+            untilDate.setHours(23, 59, 59, 999);
+        }
         
         // Safety limit to prevent infinite loops if RRULE is malformed
         const MAX_OCCURRENCES = 100; 

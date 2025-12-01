@@ -27,6 +27,13 @@ Krankomat.State = {
         emailDirectory: { // Maps Course Name to Email
             "IT-Projektmanagement": "prof.it@example.com",
             "Grundlagen der BWL": "prof.bwl@example.com"
+        },
+        config: {
+            headerButtons: {
+                fileshare: true,
+                calendar: true,
+                mensa: true
+            }
         }
     },
 
@@ -58,6 +65,7 @@ Krankomat.State = {
         
         this.data.calendarEvents = this.loadJSONState('krankomat_calendarEvents', []);
         this.data.emailDirectory = this.loadJSONState('krankomat_emailDirectory', this.defaults.emailDirectory);
+        this.data.config = this.loadJSONState('krankomat_config', this.defaults.config);
 
         // Merge recipients logic
         const baseRecipients = this.defaults.recipientsStructure.map(r => ({ ...r, email: '' }));
@@ -82,6 +90,7 @@ Krankomat.State = {
             localStorage.setItem('krankomat_details', JSON.stringify(this.data.details));
             localStorage.setItem('krankomat_calendarEvents', JSON.stringify(this.data.calendarEvents));
             localStorage.setItem('krankomat_emailDirectory', JSON.stringify(this.data.emailDirectory));
+            localStorage.setItem('krankomat_config', JSON.stringify(this.data.config));
             
             if (this.data.recipients && this.data.recipients.length > 0) {
                 localStorage.setItem('krankomat_recipients', JSON.stringify(this.data.recipients));
