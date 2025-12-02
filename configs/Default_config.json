@@ -1,0 +1,10 @@
+{
+  "config": {
+    "headerButtons": {
+      "fileshare": true,
+      "calendar": true,
+      "mensa": true
+    },
+    "supportEmail": "support@example.com"
+  }
+}
