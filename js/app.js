@@ -318,8 +318,14 @@ Krankomat.App = {
 
                   <!-- UI Toggle Section -->
                   <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
-                    <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Benutzeroberfläche (Header)</h3>
+                    <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Benutzeroberfläche</h3>
                     <div class="space-y-2">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="show-all-recipients-toggle" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" ${config.showAllRecipients ? 'checked' : ''}>
+                            <span class="text-sm text-slate-600 dark:text-slate-300 font-medium">Alle bekannten Empfänger anzeigen (statt nur Tagesauswahl)</span>
+                        </label>
+                        <hr class="border-slate-200 dark:border-slate-600 my-2">
+                        <p class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Header Buttons</p>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" class="header-toggle rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" data-target="fileshare" ${buttons.fileshare ? 'checked' : ''}>
                             <span class="text-sm text-slate-600 dark:text-slate-300">Dateifreigabe (Cloud-Link)</span>
@@ -415,6 +421,16 @@ Krankomat.App = {
                 if (file) {
                     Krankomat.Builder.handleIcsUpload(file);
                 }
+            });
+        }
+
+        // Bind Show All Toggle
+        const showAllToggle = document.getElementById('show-all-recipients-toggle');
+        if (showAllToggle) {
+            showAllToggle.addEventListener('change', (e) => {
+                Krankomat.State.updateNested('config', 'showAllRecipients', e.target.checked);
+                // Trigger recalculation of recipients list
+                Krankomat.Builder.recalculateRecipients();
             });
         }
 
