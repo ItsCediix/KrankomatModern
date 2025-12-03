@@ -34,7 +34,8 @@ Krankomat.State = {
                 calendar: true,
                 mensa: true
             },
-            supportEmail: "support@krankomat.cloud"
+            supportEmail: "support@krankomat.cloud",
+            showAllRecipients: false
         }
     },
 
