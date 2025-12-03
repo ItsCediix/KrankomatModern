@@ -60,20 +60,13 @@ Krankomat.Builder = {
             Krankomat.State.updateNested('details', 'comments', e.target.value);
         });
 
-        // Manual Save
-        const saveBtn = document.getElementById('manual-save-btn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                Krankomat.State.save();
-                const originalContent = saveBtn.innerHTML;
-                saveBtn.innerHTML = Krankomat.Utils.Icons.check + ' Gespeichert!';
-                saveBtn.classList.add('bg-green-500', 'text-white');
-                saveBtn.classList.remove('bg-indigo-100', 'text-indigo-700');
-                setTimeout(() => {
-                    saveBtn.innerHTML = originalContent;
-                    saveBtn.classList.remove('bg-green-500', 'text-white');
-                    saveBtn.classList.add('bg-indigo-100', 'text-indigo-700');
-                }, 2000);
+        // Reset Date
+        const resetBtn = document.getElementById('reset-date-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                Krankomat.State.set('sicknessStartDate', Krankomat.Utils.todayFormatted());
+                Krankomat.State.set('sicknessEndDate', '');
+                this.recalculateRecipients();
             });
         }
     },
