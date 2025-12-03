@@ -90,9 +90,13 @@ Krankomat.App = {
              });
          }
 
-         // Initial Check
-         if (localStorage.getItem('krankomat_config_suggestion_dismissed') === 'true') {
-             if (container) container.classList.add('hidden');
+         // Ensure correct display state on load
+         if (container) {
+             if (localStorage.getItem('krankomat_config_suggestion_dismissed') === 'true') {
+                 container.classList.add('hidden');
+             } else {
+                 container.classList.remove('hidden');
+             }
          }
     },
 
@@ -358,6 +362,15 @@ Krankomat.App = {
         document.getElementById('expert-file-input').onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
+
+            // Extract Name from filename [Name]_config.json
+            const filename = file.name;
+            const match = filename.match(/^(.*)_config\.json$/);
+            if (match && match[1]) {
+                const configName = match[1];
+                localStorage.setItem('krankomat_selected_config_name', configName);
+            }
+
             const reader = new FileReader();
             reader.onload = (ev) => {
                 try {
