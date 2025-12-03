@@ -118,6 +118,13 @@ Krankomat.Builder = {
                 const id = e.target.dataset.recipientId; // String match for non-numeric IDs like 'exam-office'
                 const currentRecipients = Krankomat.State.get('recipients');
                 const newRecipients = currentRecipients.map(r => r.id.toString() === id ? { ...r, isSelected: e.target.checked } : r);
+
+                // Sort recipients: checked first (except ZPD/Exam Office logic which is handled in render/recalculate usually, but here we do simple sort)
+                // However, simple sort might confuse user if items jump immediately.
+                // User requested: "only the checked ones are automatically sorted to be at the top" and "dynamically".
+                // So yes, we sort them.
+                this.sortRecipients(newRecipients);
+
                 Krankomat.State.set('recipients', newRecipients);
             }
         });
@@ -133,10 +140,19 @@ Krankomat.Builder = {
                 if (recipient && recipient.module) {
                     const dir = Krankomat.State.get('emailDirectory') || {};
                     dir[recipient.module] = e.target.value;
-                    Krankomat.State.set('emailDirectory', dir);
+                    // Direct update to prevent re-render loop
+                    Krankomat.State.data.emailDirectory = dir;
                 }
 
-                Krankomat.State.set('recipients', newRecipients);
+                // Direct update to recipients to prevent focus loss (bug fix)
+                // We update the State data reference and trigger Save, but NOT notify/render
+                Krankomat.State.data.recipients = newRecipients;
+                Krankomat.State.save();
+
+                // We still need to update the Preview
+                if (Krankomat.Preview && Krankomat.Preview.render) {
+                    Krankomat.Preview.render();
+                }
              }
         });
     },
@@ -169,6 +185,24 @@ Krankomat.Builder = {
         return nameParts.join(' ');
     },
 
+    sortRecipients: function(recipients) {
+        // Helper to score for sorting
+        const getScore = (r) => {
+            if (r.id === 1 || r.id === 'exam-office') return 2; // Always top
+            if (r.isSelected) return 1;
+            return 0;
+        };
+
+        recipients.sort((a, b) => {
+            const scoreA = getScore(a);
+            const scoreB = getScore(b);
+            if (scoreA !== scoreB) return scoreB - scoreA; // Descending
+            return (a.module || '').localeCompare(b.module || ''); // Alpha fallback
+        });
+
+        return recipients;
+    },
+
     // Central function to rebuild the recipients list based on Date AND Exam status
     recalculateRecipients: function() {
         const data = Krankomat.State.data;
@@ -186,6 +220,7 @@ Krankomat.Builder = {
         const calendarEvents = data.calendarEvents || [];
         const emailDirectory = data.emailDirectory || {};
         const isExam = data.absenceReasons && data.absenceReasons.exam;
+        const showAll = data.config && data.config.showAllRecipients;
 
         const zpd = { id: 1, anrede: 'Sehr geehrte Damen und Herren vom ZPD', module: 'ZPD (Zentrum für Personaldienste)', isSelected: true, email: '' };
         
@@ -209,6 +244,8 @@ Krankomat.Builder = {
         }
 
         // 2. Calendar / Timetable
+        let calculatedModules = []; // Track which modules were added via calendar/timetable to avoid dupes if "Show All" is on
+
         if (calendarEvents.length > 0) {
             // Logic with ICS Data
             // Filter events using the smart on-the-fly recurrence check
@@ -217,6 +254,7 @@ Krankomat.Builder = {
             // Map to recipient objects
             const eventRecipients = dayEvents.map((evt, index) => {
                 const moduleName = evt.summary; // Already cleaned by parser
+                calculatedModules.push(moduleName);
                 const knownEmail = emailDirectory[moduleName] || '';
                 
                 let anrede = `Sehr geehrte/r Dozent/in für ${moduleName}`;
@@ -246,6 +284,7 @@ Krankomat.Builder = {
                 const todaysModules = timetable.filter(e => e.day.toLowerCase() === day.toLowerCase()).map(e => e.module);
                 
                 const fallbackRecipients = todaysModules.map((mod, index) => {
+                    calculatedModules.push(mod);
                     const knownEmail = emailDirectory[mod] || '';
                     let anrede = `Sehr geehrte/r Dozent/in`;
                     if (knownEmail) {
@@ -266,7 +305,48 @@ Krankomat.Builder = {
                  newRecipients = [...newRecipients, ...fallbackRecipients];
             }
         }
+
+        // 3. Show All Recipients Toggle Logic
+        if (showAll) {
+            const allKeys = Object.keys(emailDirectory).sort();
+            let nextId = 1000; // Start high to avoid collision with daily index
+
+            allKeys.forEach(moduleName => {
+                // Skip if already added by daily logic
+                if (!calculatedModules.includes(moduleName) && moduleName !== 'ZPD (Zentrum für Personaldienste)' && moduleName !== 'Prüfungsamt (FSB PuMa)') {
+                    const knownEmail = emailDirectory[moduleName];
+                    let anrede = `Sehr geehrte/r Dozent/in für ${moduleName}`;
+                    if (knownEmail) {
+                        const extractedName = this.extractNameFromEmail(knownEmail);
+                        if (extractedName) {
+                            anrede = `Sehr geehrte/r ${extractedName}`;
+                        }
+                    }
+
+                    newRecipients.push({
+                        id: nextId++,
+                        anrede: anrede,
+                        module: moduleName,
+                        isSelected: false, // Default unchecked for "All" list
+                        email: knownEmail
+                    });
+                }
+            });
+        }
         
+        // Final Sort: Checked first
+        const getScore = (r) => {
+            if (r.id === 1 || r.id === 'exam-office') return 2;
+            if (r.isSelected) return 1;
+            return 0;
+        };
+        newRecipients.sort((a, b) => {
+            const scoreA = getScore(a);
+            const scoreB = getScore(b);
+            if (scoreA !== scoreB) return scoreB - scoreA;
+            return (a.module || '').localeCompare(b.module || '');
+        });
+
         Krankomat.State.set('recipients', newRecipients);
     },
 
@@ -445,8 +525,9 @@ Krankomat.Builder = {
         const opacityClass = isDisabled ? 'opacity-50 grayscale pointer-events-none' : '';
         const disabledAttr = isDisabled ? 'disabled' : '';
 
+        // Added transition-all for animation
         return `
-            <div class="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${opacityClass}">
+            <div class="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-300 ease-in-out ${opacityClass}">
                 <label class="flex items-center space-x-3 cursor-pointer group">
                     <div class="relative flex items-center">
                         <input type="checkbox" data-recipient-id="${r.id}" ${r.isSelected ? 'checked' : ''} ${disabledAttr} class="peer relative h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-400 dark:border-slate-500 transition-all checked:border-indigo-600 checked:bg-indigo-600 dark:checked:border-indigo-500 dark:checked:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50" />
