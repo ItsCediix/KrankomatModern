@@ -69,132 +69,30 @@ Krankomat.App = {
         this.setupSettingsModal();
         this.setupMensaModal();
         this.setupCalendarModal();
-        this.setupConfigSelectionModal();
     },
 
-    checkInitialConfig: function() {
-        const configName = localStorage.getItem('krankomat_selected_config_name');
-        if (!configName) {
-            // No config selected, trigger selection modal
-            const container = document.getElementById('config-selection-modal-container');
-            if (container) {
-                 this.renderConfigSelectionModal(container);
-            }
-        } else {
-             this.updateHeaderWithConfigName(configName);
-        }
-    },
-
-    updateHeaderWithConfigName: function(name) {
-         // Update the "WebApp" text in the header
-         const headerTitle = document.querySelector('h1 span.text-indigo-600');
-         if (headerTitle) {
-             headerTitle.textContent = name;
+    bindConfigSuggestion: function() {
+         const btn = document.getElementById('config-suggestion-btn');
+         if (btn) {
+             btn.addEventListener('click', () => {
+                 // Trigger Settings Modal
+                 const settingsBtn = document.getElementById('settings-toggle-btn');
+                 if (settingsBtn) settingsBtn.click();
+             });
          }
-    },
 
-    setupConfigSelectionModal: function() {
-         // This is a placeholder for the modal container in index.html, which I will add next
-         // But for now, I'll dynamically create the container if it doesn't exist
-         if (!document.getElementById('config-selection-modal-container')) {
-             const div = document.createElement('div');
-             div.id = 'config-selection-modal-container';
-             document.body.insertBefore(div, document.body.firstChild);
+         const dismissBtn = document.getElementById('dismiss-config-suggestion-btn');
+         const container = document.getElementById('config-suggestion-container');
+         if (dismissBtn && container) {
+             dismissBtn.addEventListener('click', () => {
+                 container.classList.add('hidden');
+                 localStorage.setItem('krankomat_config_suggestion_dismissed', 'true');
+             });
          }
-    },
 
-    renderConfigSelectionModal: async function(container) {
-        // Blur main
-        const main = document.getElementById('main-content');
-        if (main) main.classList.add('blur-sm', 'pointer-events-none');
-
-        container.innerHTML = `
-            <div class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-                      <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Konfiguration wählen</h2>
-                      <p class="text-sm text-slate-600 dark:text-slate-300 mb-6">Bitte wählen Sie eine Konfiguration für den Start.</p>
-
-                      <div id="config-list-loading" class="flex justify-center py-8">
-                          <div class="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                      </div>
-
-                      <div id="config-list" class="space-y-3 hidden max-h-[50vh] overflow-y-auto">
-                           <!-- Configs here -->
-                      </div>
-                 </div>
-            </div>
-        `;
-
-        try {
-            const res = await fetch('/api/configs');
-            if (!res.ok) throw new Error('Failed to fetch configs');
-            const configs = await res.json();
-
-            const listContainer = container.querySelector('#config-list');
-            const loading = container.querySelector('#config-list-loading');
-
-            loading.classList.add('hidden');
-            listContainer.classList.remove('hidden');
-
-            if (configs.length === 0) {
-                 listContainer.innerHTML = `<p class="text-center text-slate-500">Keine Konfigurationen gefunden.</p>`;
-            } else {
-                configs.forEach(config => {
-                    const btn = document.createElement('button');
-                    btn.className = "w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border border-slate-200 dark:border-slate-600 rounded-lg transition-colors flex justify-between items-center group";
-                    btn.innerHTML = `
-                        <span class="font-medium text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">${config.name}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 group-hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 20 20" fill="currentColor">
-                           <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                        </svg>
-                    `;
-                    btn.onclick = async () => {
-                         await this.applyConfig(config);
-                         container.innerHTML = ''; // Close modal
-                         if (main) main.classList.remove('blur-sm', 'pointer-events-none');
-                    };
-                    listContainer.appendChild(btn);
-                });
-            }
-
-        } catch (err) {
-            console.error(err);
-             const listContainer = container.querySelector('#config-list');
-             const loading = container.querySelector('#config-list-loading');
-             loading.classList.add('hidden');
-             listContainer.classList.remove('hidden');
-             listContainer.innerHTML = `<p class="text-center text-red-500">Fehler beim Laden der Konfigurationen.</p>`;
-        }
-    },
-
-    applyConfig: async function(configInfo) {
-         try {
-             // 1. Save selection name
-             localStorage.setItem('krankomat_selected_config_name', configInfo.name);
-             this.updateHeaderWithConfigName(configInfo.name);
-
-             // 2. Fetch config content
-             const res = await fetch(`/api/configs/${configInfo.filename}`);
-             if (!res.ok) throw new Error('Failed to download config');
-             const json = await res.json();
-
-             // 3. Apply settings similar to "Import" function
-            if (json.userData) localStorage.setItem('krankomat_userData', JSON.stringify(json.userData));
-            if (json.recipients) localStorage.setItem('krankomat_recipients', JSON.stringify(json.recipients));
-            if (json.sicknessStartDate) localStorage.setItem('krankomat_sicknessStartDate', JSON.stringify(json.sicknessStartDate));
-            if (json.sicknessEndDate) localStorage.setItem('krankomat_sicknessEndDate', JSON.stringify(json.sicknessEndDate));
-            if (json.absenceReasons) localStorage.setItem('krankomat_absenceReasons', JSON.stringify(json.absenceReasons));
-            if (json.details) localStorage.setItem('krankomat_details', JSON.stringify(json.details));
-            if (json.calendarEvents) localStorage.setItem('krankomat_calendarEvents', JSON.stringify(json.calendarEvents));
-            if (json.emailDirectory) localStorage.setItem('krankomat_emailDirectory', JSON.stringify(json.emailDirectory));
-            if (json.config) localStorage.setItem('krankomat_config', JSON.stringify(json.config));
-
-            // Reload to apply changes cleanly
-            window.location.reload();
-
-         } catch (err) {
-             console.error("Error applying config:", err);
-             alert("Fehler beim Anwenden der Konfiguration.");
+         // Initial Check
+         if (localStorage.getItem('krankomat_config_suggestion_dismissed') === 'true') {
+             if (container) container.classList.add('hidden');
          }
     },
 
@@ -205,9 +103,8 @@ Krankomat.App = {
         
         const accepted = localStorage.getItem(STORAGE_KEY);
         if (accepted === TERMS_VERSION || SKIP_TERMS_CHECK) {
-            // Terms already accepted, proceed to check config
-            this.checkInitialConfig();
-            return;
+             this.bindConfigSuggestion(); // Show config suggestion if terms accepted
+             return;
         }
 
         // Render modal
@@ -318,8 +215,14 @@ Krankomat.App = {
 
                   <!-- UI Toggle Section -->
                   <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
-                    <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Benutzeroberfläche (Header)</h3>
+                    <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Benutzeroberfläche</h3>
                     <div class="space-y-2">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="show-all-recipients-toggle" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" ${config.showAllRecipients ? 'checked' : ''}>
+                            <span class="text-sm text-slate-600 dark:text-slate-300 font-medium">Alle bekannten Empfänger anzeigen (statt nur Tagesauswahl)</span>
+                        </label>
+                        <hr class="border-slate-200 dark:border-slate-600 my-2">
+                        <p class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Header Buttons</p>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" class="header-toggle rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" data-target="fileshare" ${buttons.fileshare ? 'checked' : ''}>
                             <span class="text-sm text-slate-600 dark:text-slate-300">Dateifreigabe (Cloud-Link)</span>
@@ -415,6 +318,16 @@ Krankomat.App = {
                 if (file) {
                     Krankomat.Builder.handleIcsUpload(file);
                 }
+            });
+        }
+
+        // Bind Show All Toggle
+        const showAllToggle = document.getElementById('show-all-recipients-toggle');
+        if (showAllToggle) {
+            showAllToggle.addEventListener('change', (e) => {
+                Krankomat.State.updateNested('config', 'showAllRecipients', e.target.checked);
+                // Trigger recalculation of recipients list
+                Krankomat.Builder.recalculateRecipients();
             });
         }
 

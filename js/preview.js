@@ -132,12 +132,15 @@ Mit freundlichen Grüßen
         const toMailtoValue = email.toList.join(',');
         const outlookBtn = document.getElementById('open-outlook-btn');
         const mailtoLink = document.getElementById('open-mailto-link');
+        const iosMailLink = document.getElementById('open-ios-mail-link');
         const outlookTooltip = document.getElementById('outlook-tooltip');
 
         if (outlookBtn) {
             if (email.toList.length > 0) {
                 const outlookHref = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(email.to)}&subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`;
                 const mailtoHref = `mailto:${toMailtoValue}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`;
+                // ms-outlook://compose?to=email@example.com&subject=Subject&body=Body
+                const iosHref = `ms-outlook://compose?to=${encodeURIComponent(email.to)}&subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`;
                 
                 outlookBtn.disabled = false;
                 outlookBtn.onclick = () => window.open(outlookHref, '_blank', 'noopener,noreferrer');
@@ -148,6 +151,12 @@ Mit freundlichen Grüßen
                     mailtoLink.classList.remove('opacity-50', 'cursor-not-allowed');
                     mailtoLink.classList.add('hover:bg-slate-50', 'dark:hover:bg-slate-600');
                 }
+
+                if (iosMailLink) {
+                    iosMailLink.href = iosHref;
+                    iosMailLink.classList.remove('opacity-50', 'cursor-not-allowed');
+                    iosMailLink.classList.add('hover:bg-slate-50', 'dark:hover:bg-slate-600');
+                }
             } else {
                 outlookBtn.disabled = true;
                 outlookBtn.onclick = null;
@@ -156,6 +165,11 @@ Mit freundlichen Grüßen
                 if (mailtoLink) {
                     mailtoLink.removeAttribute('href');
                     mailtoLink.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                if (iosMailLink) {
+                    iosMailLink.removeAttribute('href');
+                    iosMailLink.classList.add('opacity-50', 'cursor-not-allowed');
                 }
             }
         }
