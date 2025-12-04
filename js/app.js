@@ -21,7 +21,7 @@ Krankomat.App = {
 
         this.setupModals();
         this.checkDisclaimer();
-        // checkInitialConfig will be triggered after Terms or if Terms are already accepted
+        this.checkConfigBanner();
         console.log('Krankomat initialized successfully.');
     },
 
@@ -29,6 +29,15 @@ Krankomat.App = {
         Krankomat.Builder.render();
         Krankomat.Preview.render();
         this.renderHeaderVisibility();
+        this.renderHeaderTitle();
+    },
+
+    renderHeaderTitle: function() {
+        const config = Krankomat.State.get('config') || {};
+        const titleSuffixEl = document.getElementById('app-title-suffix');
+        if (titleSuffixEl) {
+            titleSuffixEl.innerText = config.profileName || 'WebApp';
+        }
     },
 
     renderHeaderVisibility: function() {
@@ -64,6 +73,30 @@ Krankomat.App = {
         }
     },
 
+    checkConfigBanner: function() {
+        const dismissed = localStorage.getItem('krankomat_configBannerDismissed');
+        const container = document.getElementById('config-banner-container');
+        if (container && dismissed !== 'true') {
+            container.classList.remove('hidden');
+            
+            const dismissBtn = document.getElementById('dismiss-config-banner-btn');
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', () => {
+                    localStorage.setItem('krankomat_configBannerDismissed', 'true');
+                    container.classList.add('hidden');
+                });
+            }
+
+            const settingsLink = document.getElementById('open-settings-shortcut');
+            if (settingsLink) {
+                settingsLink.addEventListener('click', () => {
+                    const settingsContainer = document.getElementById('settings-modal-container');
+                    this.renderSettingsModal(settingsContainer);
+                });
+            }
+        }
+    },
+
     setupModals: function() {
         this.setupTermsModal();
         this.setupSettingsModal();
@@ -71,45 +104,15 @@ Krankomat.App = {
         this.setupCalendarModal();
     },
 
-    bindConfigSuggestion: function() {
-         const btn = document.getElementById('config-suggestion-btn');
-         if (btn) {
-             btn.addEventListener('click', () => {
-                 // Trigger Settings Modal
-                 const settingsBtn = document.getElementById('settings-toggle-btn');
-                 if (settingsBtn) settingsBtn.click();
-             });
-         }
-
-         const dismissBtn = document.getElementById('dismiss-config-suggestion-btn');
-         const container = document.getElementById('config-suggestion-container');
-         if (dismissBtn && container) {
-             dismissBtn.addEventListener('click', () => {
-                 container.classList.add('hidden');
-                 localStorage.setItem('krankomat_config_suggestion_dismissed', 'true');
-             });
-         }
-
-         // Ensure correct display state on load
-         if (container) {
-             if (localStorage.getItem('krankomat_config_suggestion_dismissed') === 'true') {
-                 container.classList.add('hidden');
-             } else {
-                 container.classList.remove('hidden');
-             }
-         }
-    },
-
     setupTermsModal: function() {
         const SKIP_TERMS_CHECK = false; // Set to true if you want to skip
         const TERMS_VERSION = '20.11.2025';
         const STORAGE_KEY = 'krankomat_agb_accepted_version';
         
+        if (SKIP_TERMS_CHECK) return;
+
         const accepted = localStorage.getItem(STORAGE_KEY);
-        if (accepted === TERMS_VERSION || SKIP_TERMS_CHECK) {
-             this.bindConfigSuggestion(); // Show config suggestion if terms accepted
-             return;
-        }
+        if (accepted === TERMS_VERSION) return;
 
         // Render modal
         const container = document.getElementById('terms-modal-container');
@@ -158,9 +161,6 @@ Krankomat.App = {
                 localStorage.setItem(STORAGE_KEY, TERMS_VERSION);
                 container.innerHTML = '';
                 if (main) main.classList.remove('blur-sm', 'pointer-events-none');
-
-                // After accepting terms, check for config
-                this.checkInitialConfig();
             });
         }
     },
@@ -184,6 +184,7 @@ Krankomat.App = {
         const config = Krankomat.State.get('config') || {};
         const buttons = config.headerButtons || { fileshare: true, calendar: true, mensa: true };
         const supportEmail = config.supportEmail || "support@krankomat.cloud";
+        const showAll = config.showAllRecipients || false;
 
         container.innerHTML = `
           <div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm transition-all" id="expert-backdrop">
@@ -217,16 +218,19 @@ Krankomat.App = {
                      </div>
                   </div>
 
+                  <!-- UI Settings Section -->
+                  <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                     <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Benutzeroberfläche</h3>
+                     <label class="flex items-center space-x-2">
+                        <input type="checkbox" id="setting-show-all-recipients" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" ${showAll ? 'checked' : ''}>
+                        <span class="text-sm text-slate-600 dark:text-slate-300">Alle bekannten Empfänger anzeigen (statt nur Tagesauswahl)</span>
+                     </label>
+                  </div>
+
                   <!-- UI Toggle Section -->
                   <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
-                    <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Benutzeroberfläche</h3>
+                    <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Benutzeroberfläche (Header)</h3>
                     <div class="space-y-2">
-                        <label class="flex items-center space-x-2">
-                            <input type="checkbox" id="show-all-recipients-toggle" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" ${config.showAllRecipients ? 'checked' : ''}>
-                            <span class="text-sm text-slate-600 dark:text-slate-300 font-medium">Alle bekannten Empfänger anzeigen (statt nur Tagesauswahl)</span>
-                        </label>
-                        <hr class="border-slate-200 dark:border-slate-600 my-2">
-                        <p class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Header Buttons</p>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" class="header-toggle rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" data-target="fileshare" ${buttons.fileshare ? 'checked' : ''}>
                             <span class="text-sm text-slate-600 dark:text-slate-300">Dateifreigabe (Cloud-Link)</span>
@@ -314,6 +318,15 @@ Krankomat.App = {
         }
         Krankomat.Colors.renderToggle(); // Update icon state immediately
 
+        // Bind Show All Recipients Toggle
+        const showAllCheck = document.getElementById('setting-show-all-recipients');
+        if (showAllCheck) {
+            showAllCheck.addEventListener('change', (e) => {
+                Krankomat.State.updateNested('config', 'showAllRecipients', e.target.checked);
+                Krankomat.Builder.recalculateRecipients(); // Force recalculation to update list
+            });
+        }
+
         // Bind ICS Upload in Settings
         const icsInput = document.getElementById('settings-ics-upload');
         if (icsInput) {
@@ -322,16 +335,6 @@ Krankomat.App = {
                 if (file) {
                     Krankomat.Builder.handleIcsUpload(file);
                 }
-            });
-        }
-
-        // Bind Show All Toggle
-        const showAllToggle = document.getElementById('show-all-recipients-toggle');
-        if (showAllToggle) {
-            showAllToggle.addEventListener('change', (e) => {
-                Krankomat.State.updateNested('config', 'showAllRecipients', e.target.checked);
-                // Trigger recalculation of recipients list
-                Krankomat.Builder.recalculateRecipients();
             });
         }
 
@@ -363,14 +366,10 @@ Krankomat.App = {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Extract Name from filename [Name]_config.json
+            // Check filename for [Name]_config.json pattern to update profile name
             const filename = file.name;
-            const match = filename.match(/^(.*)_config\.json$/);
-            if (match && match[1]) {
-                const configName = match[1];
-                localStorage.setItem('krankomat_selected_config_name', configName);
-            }
-
+            const nameMatch = filename.match(/^(.*)_config\.json$/);
+            
             const reader = new FileReader();
             reader.onload = (ev) => {
                 try {
@@ -383,7 +382,19 @@ Krankomat.App = {
                     if (json.details) localStorage.setItem('krankomat_details', JSON.stringify(json.details));
                     if (json.calendarEvents) localStorage.setItem('krankomat_calendarEvents', JSON.stringify(json.calendarEvents));
                     if (json.emailDirectory) localStorage.setItem('krankomat_emailDirectory', JSON.stringify(json.emailDirectory));
-                    if (json.config) localStorage.setItem('krankomat_config', JSON.stringify(json.config));
+                    
+                    if (json.config) {
+                        // If file matched pattern, override/set profileName
+                        if (nameMatch && nameMatch[1]) {
+                            json.config.profileName = nameMatch[1];
+                        }
+                        localStorage.setItem('krankomat_config', JSON.stringify(json.config));
+                    } else if (nameMatch && nameMatch[1]) {
+                        // Create config if missing but name is present
+                        const defaultConfig = Krankomat.State.defaults.config;
+                        defaultConfig.profileName = nameMatch[1];
+                        localStorage.setItem('krankomat_config', JSON.stringify(defaultConfig));
+                    }
                     
                     window.location.reload();
                 } catch (err) {
@@ -395,6 +406,7 @@ Krankomat.App = {
     },
 
     setupMensaModal: function() {
+        // ... (rest of the file remains unchanged)
         const toggleBtn = document.getElementById('mensa-toggle-btn');
         if (toggleBtn) {
             toggleBtn.addEventListener('click', () => {

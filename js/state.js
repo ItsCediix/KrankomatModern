@@ -29,13 +29,14 @@ Krankomat.State = {
             "Grundlagen der BWL": "prof.bwl@example.com"
         },
         config: {
+            showAllRecipients: false,
             headerButtons: {
                 fileshare: true,
                 calendar: true,
                 mensa: true
             },
             supportEmail: "support@krankomat.cloud",
-            showAllRecipients: false
+            profileName: "WebApp"
         }
     },
 
