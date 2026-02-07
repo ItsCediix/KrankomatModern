@@ -1,4 +1,5 @@
 
+
 // Namespace setup
 window.Krankomat = window.Krankomat || {};
 
@@ -18,6 +19,189 @@ Krankomat.Utils = {
         if (isNaN(date.getTime())) return null;
         const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
         return days[date.getDay()];
+    },
+    
+    // Helper to parse ICS date string (YYYYMMDDTHHMMSS or YYYYMMDD) to JS Date
+    parseIcsDateStringToJsDate: (str) => {
+        if (!str) return null;
+        const clean = str.replace('Z', '').trim();
+        const y = parseInt(clean.substring(0,4));
+        const m = parseInt(clean.substring(4,6)) - 1; // Months are 0-indexed
+        const d = parseInt(clean.substring(6,8));
+        
+        let h = 0, min = 0, s = 0;
+        if (clean.includes('T')) {
+            const timePart = clean.split('T')[1];
+            if (timePart.length >= 2) h = parseInt(timePart.substring(0,2));
+            if (timePart.length >= 4) min = parseInt(timePart.substring(2,4));
+            if (timePart.length >= 6) s = parseInt(timePart.substring(4,6));
+        }
+        return new Date(y, m, d, h, min, s);
+    },
+
+    // Helper to format JS Date back to ICS string YYYYMMDDTHHMMSS
+    formatJsDateToIcsString: (date) => {
+        const pad = n => n.toString().padStart(2, '0');
+        return `${date.getFullYear()}${pad(date.getMonth()+1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+    },
+
+    // ICS Parsing Utility - COMPACT MODE
+    // Stores only the unique events with their RRULE strings, does not expand them.
+    parseICS: (icsContent) => {
+        const events = [];
+        
+        // RFC 5545 Unfolding
+        const lines = icsContent.split(/\r\n|\n|\r/);
+        const unfoldedLines = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.length === 0) continue;
+            
+            if (line.startsWith(' ') || line.startsWith('\t')) {
+                if (unfoldedLines.length > 0) {
+                    unfoldedLines[unfoldedLines.length - 1] += line.substring(1);
+                }
+            } else {
+                unfoldedLines.push(line);
+            }
+        }
+        
+        let inEvent = false;
+        let currentEvent = {};
+        
+        for (const rawLine of unfoldedLines) {
+            const line = rawLine.trim();
+            const upperLine = line.toUpperCase();
+            
+            // Check boundaries
+            if (upperLine.startsWith('BEGIN:VEVENT')) {
+                inEvent = true;
+                currentEvent = {};
+                continue;
+            }
+            if (upperLine.startsWith('END:VEVENT')) {
+                inEvent = false;
+                if (currentEvent.start && currentEvent.summary) {
+                    events.push({...currentEvent});
+                }
+                continue;
+            }
+
+            if (inEvent) {
+                if (upperLine.startsWith('DTSTART')) {
+                    const idx = line.indexOf(':');
+                    if (idx !== -1) {
+                         currentEvent.start = line.substring(idx + 1).trim();
+                    }
+                } else if (upperLine.startsWith('SUMMARY')) {
+                    const idx = line.indexOf(':');
+                    if (idx !== -1) {
+                        let summaryVal = line.substring(idx + 1).trim();
+                        // Handle "Code:Name" convention
+                        const codeIdx = summaryVal.indexOf(':');
+                        if (codeIdx !== -1) {
+                            currentEvent.summary = summaryVal.substring(codeIdx + 1).trim();
+                        } else {
+                            currentEvent.summary = summaryVal;
+                        }
+                    }
+                } else if (upperLine.startsWith('LOCATION')) {
+                    const idx = line.indexOf(':');
+                    if (idx !== -1) {
+                         // Extract and clean location (unescape commas)
+                         currentEvent.location = line.substring(idx + 1).trim().replace(/\\,/g, ',');
+                    }
+                } else if (upperLine.startsWith('RRULE')) {
+                    const idx = line.indexOf(':');
+                    if (idx !== -1) {
+                        // Store the RRULE string for on-demand calculation
+                        currentEvent.rrule = line.substring(idx + 1).trim();
+                    }
+                }
+            }
+        }
+        return events;
+    },
+
+    // Check if an event falls on a specific date (DD.MM.YYYY)
+    // Handles base date matching and RRULE logic (Weekly only)
+    isEventOnDate: (event, targetDateStr) => {
+        if (!event.start || !targetDateStr) return false;
+
+        // 1. Parse dates to comparable objects (midnight)
+        const parts = targetDateStr.split('.');
+        if (parts.length !== 3) return false;
+        
+        // Target date at midnight
+        const targetDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        
+        // Event start date at midnight
+        const startDateFull = Krankomat.Utils.parseIcsDateStringToJsDate(event.start);
+        if (!startDateFull) return false;
+        
+        const startDate = new Date(startDateFull.getFullYear(), startDateFull.getMonth(), startDateFull.getDate());
+
+        // Optimization: If target is before start, impossible
+        if (targetDate < startDate) return false;
+
+        // 2. Base match
+        // Calculate difference in days
+        const diffTime = targetDate.getTime() - startDate.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+        if (diffDays === 0) return true;
+
+        // 3. RRULE logic
+        if (!event.rrule) return false;
+
+        const rrule = event.rrule;
+        const rruleParts = rrule.split(';').reduce((acc, part) => {
+            const [key, val] = part.split('=');
+            acc[key] = val;
+            return acc;
+        }, {});
+
+        // Only support WEEKLY for now
+        if (rruleParts['FREQ'] !== 'WEEKLY') return false;
+
+        const interval = rruleParts['INTERVAL'] ? parseInt(rruleParts['INTERVAL']) : 1;
+        
+        // Check if days diff aligns with weekly interval
+        if (diffDays % (7 * interval) !== 0) return false;
+        
+        // Check UNTIL
+        if (rruleParts['UNTIL']) {
+            const untilStr = rruleParts['UNTIL'];
+            const untilDate = Krankomat.Utils.parseIcsDateStringToJsDate(untilStr);
+            
+            // Fix for inclusive UNTIL date-only
+            if (untilStr.replace('Z','').trim().length === 8) {
+                untilDate.setHours(23, 59, 59, 999);
+            }
+            
+            // Compare full target date (which is midnight) vs Until
+            if (targetDate > untilDate) return false;
+        }
+
+        // Check COUNT
+        if (rruleParts['COUNT']) {
+            const count = parseInt(rruleParts['COUNT']);
+            const occurrences = (diffDays / (7 * interval)) + 1; // +1 because base is #1
+            if (occurrences > count) return false;
+        }
+
+        return true;
+    },
+
+    // Convert ICS date (YYYYMMDD or YYYYMMDDTHHMMSS) to app format (DD.MM.YYYY)
+    convertICSDateToAppDate: (icsDateStr) => {
+        if (!icsDateStr) return null;
+        // Basic parsing for YYYYMMDD
+        const year = icsDateStr.substring(0, 4);
+        const month = icsDateStr.substring(4, 6);
+        const day = icsDateStr.substring(6, 8);
+        return `${day}.${month}.${year}`;
     },
 
     renderTemplate: (template, context) => {
