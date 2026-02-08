@@ -74,8 +74,13 @@ Krankomat.App = {
         if (btn) {
             btn.addEventListener('click', () => {
                 const config = Krankomat.State.get('config') || {};
-                const link = config.verifyLink || "";
-                if (link.trim()) {
+                let link = (config.verifyLink || "").trim();
+                
+                if (link) {
+                    // CRITICAL FIX: Ensure the link is absolute to prevent appending to current URL
+                    if (!/^https?:\/\//i.test(link)) {
+                        link = 'https://' + link;
+                    }
                     window.open(link, '_blank', 'noopener,noreferrer');
                 } else {
                     Krankomat.Utils.showToast("Kein Verifizierungs-Link in den Einstellungen konfiguriert.", "error");
