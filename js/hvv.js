@@ -139,7 +139,9 @@ const KrankomatHVV = {
                 localStorage.setItem(cacheKey, JSON.stringify(configData));
             }
 
-            // Fetch departures
+            const stationName = configData.stationList[0].name;
+            
+            // Fetch departures from HVV API directly (supports CORS for file://)
             const now = new Date();
             const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
             const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -148,7 +150,7 @@ const KrankomatHVV = {
                 version: 51,
                 station: configData.stationList[0],
                 time: { date: dateStr, time: timeStr },
-                maxList: 20,
+                maxList: 40,
                 allStationsInChangingNode: true,
                 returnFilters: true,
                 filter: configData.filterList || [],
@@ -166,12 +168,28 @@ const KrankomatHVV = {
             });
 
             if (!depRes.ok) {
-                throw new Error('Fehler beim Laden der Abfahrten.');
+                throw new Error('Fehler beim Laden der Abfahrten (HVV API).');
             }
 
             const depData = await depRes.json();
             
-            this.renderDepartures(depData.departures || [], configData.stationList[0].name);
+            let departures = depData.departures || [];
+            
+            // Custom Client-Side Filter: Only S1 to Hamburg Airport
+            departures = departures.filter(dep => {
+                const lineName = dep.line && dep.line.name ? dep.line.name : '';
+                const direction = dep.line && dep.line.direction ? dep.line.direction : '';
+                
+                const isS1 = lineName === 'S1' || lineName === 'S 1';
+                const isAirport = direction.toLowerCase().includes('airport') || direction.toLowerCase().includes('flughafen');
+                
+                return isS1 && isAirport;
+            });
+            
+            // Limit to 5 departures
+            departures = departures.slice(0, 5);
+            
+            this.renderDepartures(departures, configData.stationList[0].name);
 
         } catch (error) {
             console.error('HVV Error:', error);
@@ -188,7 +206,9 @@ const KrankomatHVV = {
         const contentEl = document.getElementById('hvv-content');
         if (!contentEl) return;
 
-        if (departures.length === 0) {
+        const validDepartures = departures; // HVV API returns valid departures
+
+        if (validDepartures.length === 0) {
             contentEl.innerHTML = `
                 <div class="text-center py-8">
                     <p class="text-slate-500 dark:text-slate-400">Keine Abfahrten in nächster Zeit gefunden.</p>
@@ -202,17 +222,27 @@ const KrankomatHVV = {
             <div class="space-y-3">
         `;
 
-        departures.forEach(dep => {
-            const lineName = dep.line.name;
-            const direction = dep.line.direction;
-            const timeOffset = dep.timeOffset;
-            const delay = dep.delay || 0;
+        validDepartures.forEach(dep => {
+            const lineName = dep.line && dep.line.name ? dep.line.name : 'Unbekannt';
+            const direction = dep.line && dep.line.direction ? dep.line.direction : 'Unbekannt';
+            const isCancelled = dep.cancelled === true;
+            
+            const timeOffset = Math.max(0, dep.timeOffset || 0);
+            const delay = dep.delay ? Math.floor(dep.delay / 60) : 0;
             
             let timeText = timeOffset === 0 ? 'Jetzt' : `in ${timeOffset} Min`;
+            if (isCancelled) {
+                timeText = 'Fällt aus';
+            }
+            
             let delayHtml = '';
             
-            if (delay > 0) {
-                delayHtml = `<span class="text-red-500 text-xs font-medium ml-2">+${delay}</span>`;
+            if (!isCancelled) {
+                if (delay > 0) {
+                    delayHtml = `<span class="text-red-500 text-xs font-medium ml-2">+${delay}</span>`;
+                } else if (delay < 0) {
+                    delayHtml = `<span class="text-green-500 text-xs font-medium ml-2">${delay}</span>`;
+                }
             }
 
             // Determine color based on line type
@@ -220,7 +250,7 @@ const KrankomatHVV = {
             let textColor = 'text-slate-800 dark:text-slate-200';
             let iconHtml = lineName;
             
-            if (lineName === 'S1') {
+            if (lineName === 'S1' || lineName === 'S 1') {
                 iconHtml = `
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 661.6699 260.165" class="h-6 w-auto">
                         <path d="M 137.5635,0 L 524.1065,0 C 600.0899,0 661.67,58.2461 661.67,130.0889 C 661.67,201.9307 600.0899,260.1651 524.1065,260.1651 L 137.5635,260.1651 C 61.5801,260.165 0,201.9307 0,130.0889 C 0,58.2461 61.5801,0 137.5635,0 z " style="fill:#00962c;fill-rule:evenodd"/>
@@ -236,24 +266,26 @@ const KrankomatHVV = {
             } else if (lineName.startsWith('U')) {
                 bgColor = 'bg-[#003087]';
                 textColor = 'text-white';
-            } else if (dep.line.type.simpleType === 'BUS') {
+            } else if (dep.line && dep.line.type && dep.line.type.simpleType === 'BUS') {
                 bgColor = 'bg-[#E3001B]';
                 textColor = 'text-white';
             }
 
+            const platform = dep.realtimePlatform || dep.platform || '';
+
             html += `
-                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
+                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors ${isCancelled ? 'opacity-60' : ''}">
                     <div class="flex items-center space-x-4 overflow-hidden">
-                        <div class="${bgColor} ${textColor} font-bold ${lineName === 'S1' ? '' : 'px-3 py-1'} rounded min-w-[3rem] text-center flex-shrink-0 flex items-center justify-center">
+                        <div class="${bgColor} ${textColor} font-bold ${(lineName === 'S1' || lineName === 'S 1') ? '' : 'px-3 py-1'} rounded min-w-[3rem] text-center flex-shrink-0 flex items-center justify-center">
                             ${iconHtml}
                         </div>
                         <div class="truncate">
-                            <p class="font-medium text-slate-800 dark:text-slate-200 truncate" title="${direction}">${direction}</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">${dep.platform || ''}</p>
+                            <p class="font-medium text-slate-800 dark:text-slate-200 truncate ${isCancelled ? 'line-through' : ''}" title="${direction}">${direction}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">${platform ? 'Gleis ' + platform : ''}</p>
                         </div>
                     </div>
                     <div class="text-right flex-shrink-0 ml-4">
-                        <p class="font-bold text-slate-800 dark:text-slate-200">${timeText}</p>
+                        <p class="font-bold ${isCancelled ? 'text-red-500' : 'text-slate-800 dark:text-slate-200'}">${timeText}</p>
                         ${delayHtml}
                     </div>
                 </div>
