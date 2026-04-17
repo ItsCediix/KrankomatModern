@@ -425,6 +425,10 @@ Krankomat.App = {
                         <input type="checkbox" id="setting-show-all-recipients" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" ${showAll ? 'checked' : ''}>
                         <span class="text-sm text-slate-600 dark:text-slate-300">Alle bekannten Empfänger anzeigen (statt nur Tagesauswahl)</span>
                      </label>
+                     <label class="flex items-center space-x-2 mb-2">
+                        <input type="checkbox" id="setting-show-all-calendar-events" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" ${config.showAllCalendarEvents ? 'checked' : ''}>
+                        <span class="text-sm text-slate-600 dark:text-slate-300">Alle bekannten Termine anzeigen (auch demarkierte)</span>
+                     </label>
 
                      <hr class="my-3 border-slate-200 dark:border-slate-600">
                      
@@ -446,10 +450,12 @@ Krankomat.App = {
                             <input type="checkbox" class="header-toggle rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" data-target="mensa" ${buttons.mensa ? 'checked' : ''}>
                             <span class="text-sm text-slate-600 dark:text-slate-300">Mensa Menü</span>
                         </label>
+                        ${config.hideHvvUrlSetting ? '' : `
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" class="header-toggle rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" data-target="hvv" ${buttons.hvv !== false ? 'checked' : ''}>
                             <span class="text-sm text-slate-600 dark:text-slate-300">HVV Abfahrten</span>
                         </label>
+                        `}
                     </div>
                   </div>
                   
@@ -540,6 +546,15 @@ Krankomat.App = {
             showAllCheck.addEventListener('change', (e) => {
                 Krankomat.State.updateNested('config', 'showAllRecipients', e.target.checked);
                 Krankomat.Builder.recalculateRecipients(); // Force recalculation to update list
+            });
+        }
+
+        // Bind Show All Calendar Events Toggle
+        const showAllCalCheck = document.getElementById('setting-show-all-calendar-events');
+        if (showAllCalCheck) {
+            showAllCalCheck.addEventListener('change', (e) => {
+                Krankomat.State.updateNested('config', 'showAllCalendarEvents', e.target.checked);
+                // The calendar loads dynamically when opened, so state update is sufficient here
             });
         }
 
@@ -644,7 +659,7 @@ Krankomat.App = {
     renderMensaModal: function(container) {
         container.innerHTML = `
             <div class="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 transition-opacity duration-300" id="mensa-backdrop">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-scale-in" onclick="event.stopPropagation()">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl h-[600px] max-h-[90vh] flex flex-col animate-scale-in" onclick="event.stopPropagation()">
                     <header class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center space-x-4">
                             <button id="mensa-prev" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
@@ -795,13 +810,13 @@ Krankomat.App = {
 
         container.innerHTML = `
             <div class="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 transition-opacity duration-300" id="calendar-backdrop">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col animate-scale-in" onclick="event.stopPropagation()">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col animate-scale-in h-[600px] max-h-[90vh]" onclick="event.stopPropagation()">
                     <header class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center space-x-4">
                             <button id="calendar-prev" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                             </button>
-                            <div class="text-center">
+                            <div class="text-center w-48 sm:w-64">
                                 <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">Stundenplan</h2>
                                 <p class="text-xs text-indigo-600 dark:text-indigo-400 mb-0.5">${countText}</p>
                                 <p id="calendar-date-display" class="text-sm text-slate-500 dark:text-slate-400 font-medium"></p>
@@ -814,7 +829,7 @@ Krankomat.App = {
                              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </header>
-                    <main id="calendar-content" class="p-4 sm:p-6 overflow-y-auto max-h-[60vh]">
+                    <main id="calendar-content" class="p-4 sm:p-6 overflow-y-auto flex-grow">
                         <!-- Calendar events injected here -->
                     </main>
                 </div>
@@ -828,7 +843,7 @@ Krankomat.App = {
             const dateDisplay = document.getElementById('calendar-date-display');
             const content = document.getElementById('calendar-content');
             
-            dateDisplay.innerText = currentDate.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            dateDisplay.innerText = currentDate.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
             
             // Format current date to string for filtering
             const day = String(currentDate.getDate()).padStart(2, '0');
@@ -836,8 +851,19 @@ Krankomat.App = {
             const year = currentDate.getFullYear();
             const dateStr = `${day}.${month}.${year}`;
 
-            // Smart filter that handles RRULEs on the fly
-            const daysEvents = events.filter(evt => Krankomat.Utils.isEventOnDate(evt, dateStr));
+            // Fetch configuration for filtering
+            const config = Krankomat.State.data.config || {};
+            const showAll = config.showAllCalendarEvents === true;
+            const deselected = config.deselectedModules || [];
+
+            // Smart filter that handles RRULEs on the fly and deselected modules
+            const daysEvents = events.filter(evt => {
+                if (!Krankomat.Utils.isEventOnDate(evt, dateStr)) return false;
+                if (!showAll && evt.summary && deselected.includes(evt.summary)) {
+                    return false;
+                }
+                return true;
+            });
 
             if (daysEvents.length === 0) {
                  if (events.length === 0) {

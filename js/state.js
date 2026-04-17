@@ -24,6 +24,7 @@ Krankomat.State = {
         emailDirectory: {}, // Maps Course Name to Email
         config: {
             showAllRecipients: false,
+            showAllCalendarEvents: false,
             headerButtons: {
                 fileshare: true,
                 calendar: true,
@@ -38,6 +39,7 @@ Krankomat.State = {
             pruefungsamtEmail: "",
             sharepointUrl: "",
             hvvUrl: "https://www.hvv.de/de/fahrplaene/abruf-fahrplaninfos/abfahrten-auf-ihrem-monitor/abfahrten-anzeige?show=a9d66eb086804760af209c71126ed4c5",
+            hideHvvUrlSetting: false,
             colorTheme: "blue",
             excludedRecipients: [],
             studyProgram: ""

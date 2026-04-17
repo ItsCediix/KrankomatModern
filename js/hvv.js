@@ -139,6 +139,17 @@ const KrankomatHVV = {
                 localStorage.setItem(cacheKey, JSON.stringify(configData));
             }
 
+            // Hardcode Berliner Tor station to bypass HVV config url if needed
+            configData.stationList = [{
+                name: 'Berliner Tor',
+                city: 'Hamburg',
+                combinedName: 'Berliner Tor',
+                id: 'Master:10952',
+                globalId: 'de:02000:10952',
+                type: 'STATION'
+            }];
+            configData.filterList = [];
+            
             const stationName = configData.stationList[0].name;
             
             // Fetch departures from HVV API directly (supports CORS for file://)
@@ -175,19 +186,9 @@ const KrankomatHVV = {
             
             let departures = depData.departures || [];
             
-            // Custom Client-Side Filter: Only S1 to Hamburg Airport
-            departures = departures.filter(dep => {
-                const lineName = dep.line && dep.line.name ? dep.line.name : '';
-                const direction = dep.line && dep.line.direction ? dep.line.direction : '';
-                
-                const isS1 = lineName === 'S1' || lineName === 'S 1';
-                const isAirport = direction.toLowerCase().includes('airport') || direction.toLowerCase().includes('flughafen');
-                
-                return isS1 && isAirport;
-            });
-            
-            // Limit to 5 departures
-            departures = departures.slice(0, 5);
+            // Remove Client-Side logic, fetch all departures for Berliner Tor
+            // Limit to 20 departures to avoid overwhelming the popup
+            departures = departures.slice(0, 20);
             
             this.renderDepartures(departures, configData.stationList[0].name);
 
