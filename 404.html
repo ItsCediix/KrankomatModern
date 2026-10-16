@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Bewusst eigenständig (keine Skripte, keine externen Dateien): GitHub Pages liefert diese Seite
+         für jeden unbekannten Pfad aus, relative Verweise auf css/ oder js/ würden dort ins Leere laufen. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+    <title>Seite nicht gefunden – Krankomat Modern</title>
+    <style>
+      :root {
+        --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+        --primary: #2563eb; --primary-hover: #1d4ed8;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --border: #334155; --primary: #3b82f6; --primary-hover: #2563eb; }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem;
+        background: var(--bg); color: var(--text);
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        width: 100%; max-width: 28rem; text-align: center; padding: 2.5rem 2rem;
+        background: var(--card); border: 1px solid var(--border); border-radius: 1rem;
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+      .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; color: var(--muted); letter-spacing: 0.1em; }
+      h1 { font-size: 1.5rem; margin: 0.5rem 0 0.75rem; }
+      p { color: var(--muted); line-height: 1.6; margin: 0 0 1.75rem; font-size: 0.95rem; }
+      a.btn {
+        display: inline-block; padding: 0.7rem 1.5rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none;
+        background: var(--primary); color: #fff; transition: background-color 0.2s;
+      }
+      a.btn:hover, a.btn:focus-visible { background: var(--primary-hover); }
+      .brand { margin-top: 1.75rem; font-size: 0.8rem; color: var(--muted); }
+      .brand strong { color: var(--primary); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="code">FEHLER 404</div>
+      <h1>Seite nicht gefunden</h1>
+      <p>Diese Adresse gibt es nicht. Vielleicht ist der Link veraltet oder vertippt.</p>
+      <!-- Absoluter Pfad, weil diese Seite unter beliebigen Unterpfaden angezeigt wird.
+           Bei Umbenennung des Repos oder eigener Domain hier anpassen. -->
+      <a class="btn" href="/KrankomatModern/">Zum Krankomat</a>
+      <div class="brand">Krankomat <strong>WebApp</strong></div>
+    </main>
+  </body>
+</html>

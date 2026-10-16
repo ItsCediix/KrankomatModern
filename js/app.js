@@ -88,7 +88,7 @@ Krankomat.App = {
         
         let html = `
           <div class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in" id="parallel-backdrop">
-             <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full border border-indigo-500/30 animate-scale-in" onclick="event.stopPropagation()">
+             <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full border border-indigo-500/30 animate-scale-in">
                 <div class="p-5 border-b border-slate-200 dark:border-slate-700">
                    <h2 class="text-lg font-bold text-slate-800 dark:text-white">Parallel stattfindende Kurse</h2>
                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Wir haben Kurse gefunden, die gleichzeitig stattfinden. Bitte wählen Sie, welche Sie tatsächlich belegen. Die abgewählten Kurse werden bei der Krankmeldung standardmäßig deaktiviert.</p>
@@ -353,7 +353,7 @@ Krankomat.App = {
 
         container.innerHTML = `
           <div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm transition-all" id="expert-backdrop">
-             <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full border border-indigo-500/30 animate-scale-in" onclick="event.stopPropagation()">
+             <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full border border-indigo-500/30 animate-scale-in">
                 <div class="p-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                    <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -509,7 +509,8 @@ Krankomat.App = {
         `;
 
         document.getElementById('expert-close-btn').onclick = () => container.innerHTML = '';
-        document.getElementById('expert-backdrop').onclick = () => container.innerHTML = '';
+        // CSP: statt Inline-onclick nur schließen, wenn direkt auf den Hintergrund geklickt wurde
+        document.getElementById('expert-backdrop').onclick = (e) => { if (e.target === e.currentTarget) container.innerHTML = ''; };
 
         // Bind Theme Toggle
         const themeBtn = document.getElementById('theme-toggle-btn');
@@ -659,7 +660,7 @@ Krankomat.App = {
     renderMensaModal: function(container) {
         container.innerHTML = `
             <div class="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 transition-opacity duration-300" id="mensa-backdrop">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl h-[600px] max-h-[90vh] flex flex-col animate-scale-in" onclick="event.stopPropagation()">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl h-[600px] max-h-[90vh] flex flex-col animate-scale-in">
                     <header class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center space-x-4">
                             <button id="mensa-prev" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
@@ -713,7 +714,8 @@ Krankomat.App = {
             }
         };
 
-        document.getElementById('mensa-backdrop').onclick = () => container.innerHTML = '';
+        // CSP: statt Inline-onclick nur schließen, wenn direkt auf den Hintergrund geklickt wurde
+        document.getElementById('mensa-backdrop').onclick = (e) => { if (e.target === e.currentTarget) container.innerHTML = ''; };
         document.getElementById('mensa-close').onclick = () => container.innerHTML = '';
         document.getElementById('mensa-prev').onclick = () => { currentDate.setDate(currentDate.getDate() - 1); fetchMenu(); };
         document.getElementById('mensa-next').onclick = () => { currentDate.setDate(currentDate.getDate() + 1); fetchMenu(); };
@@ -821,7 +823,7 @@ Krankomat.App = {
 
         container.innerHTML = `
             <div class="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 transition-opacity duration-300" id="calendar-backdrop">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col animate-scale-in h-[600px] max-h-[90vh]" onclick="event.stopPropagation()">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col animate-scale-in h-[600px] max-h-[90vh]">
                     <header class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center space-x-4">
                             <button id="calendar-prev" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
@@ -976,7 +978,8 @@ Krankomat.App = {
             }
         };
 
-        document.getElementById('calendar-backdrop').onclick = () => container.innerHTML = '';
+        // CSP: statt Inline-onclick nur schließen, wenn direkt auf den Hintergrund geklickt wurde
+        document.getElementById('calendar-backdrop').onclick = (e) => { if (e.target === e.currentTarget) container.innerHTML = ''; };
         document.getElementById('calendar-close').onclick = () => container.innerHTML = '';
         
         document.getElementById('calendar-prev').onclick = () => { 
