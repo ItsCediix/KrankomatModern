@@ -26,10 +26,10 @@ Krankomat.State = {
             showAllRecipients: false,
             showAllCalendarEvents: false,
             headerButtons: {
-                fileshare: true,
+                fileshare: false,
                 calendar: true,
                 mensa: true,
-                verify: true,
+                verify: false,
                 hvv: true
             },
             verifyLink: "", // Variable to determine which link the double check button opens
