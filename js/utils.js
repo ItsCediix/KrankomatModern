@@ -247,6 +247,51 @@ Krankomat.Utils = {
         }, 3000);
     },
 
+    /**
+     * DSGVO: Einwilligung vor dem Laden externer Inhalte.
+     * Beim Abruf von Drittservern wird die IP-Adresse des Nutzers dorthin übertragen.
+     * Ohne Einwilligung wird nichts geladen; mit "Auswahl merken" wird die Einwilligung
+     * lokal gespeichert und kann unter datenschutz.html widerrufen werden.
+     * @param {string} serviceKey  z. B. 'mensa' oder 'hvv'
+     * @param {HTMLElement} contentEl  Bereich, in dem der Hinweis angezeigt wird
+     * @param {{title:string, provider:string, host:string}} info
+     * @param {Function} onConsent  wird nach Zustimmung ausgeführt (lädt die Daten)
+     */
+    CONSENT_PREFIX: 'krankomat_consent_',
+
+    requireExternalConsent: (serviceKey, contentEl, info, onConsent) => {
+        const storageKey = Krankomat.Utils.CONSENT_PREFIX + serviceKey;
+        let granted = false;
+        try { granted = localStorage.getItem(storageKey) === 'granted'; } catch (e) { /* Speicher nicht verfügbar */ }
+        if (granted) { onConsent(); return; }
+
+        contentEl.innerHTML = `
+            <div class="max-w-md mx-auto text-center py-6">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">${info.title}</h3>
+                <p class="text-sm text-slate-600 dark:text-slate-300 mb-3">
+                    Diese Daten werden direkt von <strong>${info.host}</strong> (${info.provider}) geladen.
+                    Dabei wird deine IP-Adresse an diesen Anbieter übertragen.
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">
+                    Mehr dazu in den <a href="datenschutz.html" target="_blank" rel="noopener" class="underline text-indigo-600 dark:text-indigo-400">Datenschutzhinweisen</a>.
+                </p>
+                <label class="flex items-center justify-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-4 cursor-pointer">
+                    <input type="checkbox" data-consent-remember class="rounded border-slate-300 text-indigo-600 w-4 h-4">
+                    <span>Auswahl merken</span>
+                </label>
+                <button type="button" data-consent-accept class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors">
+                    Inhalte laden
+                </button>
+            </div>
+        `;
+        contentEl.querySelector('[data-consent-accept]').addEventListener('click', () => {
+            if (contentEl.querySelector('[data-consent-remember]').checked) {
+                try { localStorage.setItem(storageKey, 'granted'); } catch (e) { /* Speicher nicht verfügbar */ }
+            }
+            onConsent();
+        });
+    },
+
     // Icons SVG Strings
     Icons: {
         copy: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" class="h-4 w-4"><path d="M208 0H332.1c12.7 0 24.9 5.1 33.9 14.1l67.9 67.9c9 9 14.1 21.2 14.1 33.9V336c0 26.5-21.5 48-48 48H208c-26.5 0-48-21.5-48-48V48c0-26.5 21.5-48 48-48zM48 128h80v64H64V448H256V416h64v48c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V176c0-26.5 21.5-48 48-48z"/></svg>',

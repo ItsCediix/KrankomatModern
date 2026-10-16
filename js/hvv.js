@@ -20,7 +20,18 @@ const KrankomatHVV = {
 
     openModal: function() {
         this.renderModal();
-        this.fetchData();
+        const contentEl = document.getElementById('hvv-content');
+        if (!contentEl || !Krankomat.State.data.config?.hvvUrl) return;
+        const spinner = contentEl.innerHTML;
+        // DSGVO: erst nach Einwilligung Daten von hvv.de laden
+        Krankomat.Utils.requireExternalConsent('hvv', contentEl, {
+            title: 'HVV-Abfahrten laden?',
+            provider: 'Hamburger Verkehrsverbund GmbH',
+            host: 'www.hvv.de'
+        }, () => {
+            contentEl.innerHTML = spinner;
+            this.fetchData();
+        });
     },
 
     closeModal: function() {
@@ -103,43 +114,17 @@ const KrankomatHVV = {
             // Extract show ID
             const urlObj = new URL(hvvUrl);
             const showId = urlObj.searchParams.get('show');
-            
+
             if (!showId) {
                 throw new Error('Keine "show" ID in der URL gefunden.');
             }
 
-            let configData = null;
-            const cacheKey = `krankomat_hvv_config_${showId}`;
-            const cached = localStorage.getItem(cacheKey);
-            
-            if (cached) {
-                try {
-                    configData = JSON.parse(cached);
-                } catch (e) {
-                    console.error('Cache parse error', e);
-                }
-            }
+            // DSGVO: Die Konfiguration wurde früher über den Drittanbieter-Proxy api.codetabs.com geladen
+            // (Übermittlung der IP-Adresse an einen Dritten). Da Station und Filter ohnehin fest auf
+            // Berliner Tor gesetzt werden, entfällt dieser Abruf ersatzlos.
+            const configData = {};
 
-            if (!configData) {
-                // Fetch config via proxy
-                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://www.hvv.de/linking-service/abfahrten/show/${showId}`)}`;
-                const configRes = await fetch(proxyUrl);
-                
-                if (!configRes.ok) {
-                    throw new Error('Fehler beim Laden der HVV Konfiguration über den Proxy. Bitte versuche es später erneut.');
-                }
-                
-                configData = await configRes.json();
-                
-                if (!configData.stationList || configData.stationList.length === 0) {
-                    throw new Error('Keine Stationen in der Konfiguration gefunden.');
-                }
-                
-                // Save to cache
-                localStorage.setItem(cacheKey, JSON.stringify(configData));
-            }
-
-            // Hardcode Berliner Tor station to bypass HVV config url if needed
+            // Hardcode Berliner Tor station
             configData.stationList = [{
                 name: 'Berliner Tor',
                 city: 'Hamburg',

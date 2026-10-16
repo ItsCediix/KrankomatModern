@@ -4,67 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Krankomat Modern</title>
-    <!-- Load Tailwind CDN first -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configure Tailwind -->
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            // THEME CONFIGURATION
-            // Uses CSS variables managed by js/colors.js to allow dynamic theming
-            colors: {
-              indigo: {
-                50: 'var(--color-primary-50)',
-                100: 'var(--color-primary-100)',
-                200: 'var(--color-primary-200)',
-                300: 'var(--color-primary-300)',
-                400: 'var(--color-primary-400)',
-                500: 'var(--color-primary-500)',
-                600: 'var(--color-primary-600)', // Main Brand Color
-                700: 'var(--color-primary-700)',
-                800: 'var(--color-primary-800)',
-                900: 'var(--color-primary-900)',
-                950: 'var(--color-primary-950)',
-              },
-              slate: {
-                50: '#f8fafc',
-                100: '#f1f5f9',
-                200: '#e2e8f0',
-                300: '#cbd5e1',
-                400: '#94a3b8',
-                500: '#64748b',
-                600: '#475569',
-                700: '#334155',
-                800: '#1e293b',
-                900: '#0f172a',
-                950: '#020617',
-              }
-            },
-            animation: {
-              'scale-in': 'scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-              'fade-in': 'fade-in 0.5s ease-out forwards',
-            }
-          },
-        },
-        safelist: [
-          'translate-x-1',
-          'translate-x-7',
-          'text-green-600',
-          'dark:text-green-400',
-          'text-slate-400',
-          'dark:text-slate-500',
-          'italic',
-          'font-medium',
-          'opacity-50',
-          'cursor-not-allowed'
-        ],
-        plugins: [],
-      }
-    </script>
+    <!-- Tailwind CSS lokal gebaut (kein externes CDN, DSGVO). Quelle: css/src/tailwind.input.css + tailwind.config.js -->
     <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="/index.css">
+    <link rel="stylesheet" href="css/tailwind.css">
 </head>
   <body class="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-300 font-sans transition-colors duration-300 flex flex-col">
     <noscript>You need to enable JavaScript to run this app.</noscript>
@@ -374,8 +317,9 @@
       </div>
     </main>
 
-    <footer class="py-4 text-center opacity-10 hover:opacity-100 transition-opacity duration-500">
-       <div class="text-xs font-mono text-slate-500">
+    <footer class="py-4 text-center">
+       <a href="datenschutz.html" class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline">Datenschutz</a>
+       <div class="text-xs font-mono text-slate-500 opacity-10 hover:opacity-100 transition-opacity duration-500">
           v1.1.2
        </div>
     </footer>

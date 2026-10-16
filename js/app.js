@@ -718,7 +718,18 @@ Krankomat.App = {
         document.getElementById('mensa-prev').onclick = () => { currentDate.setDate(currentDate.getDate() - 1); fetchMenu(); };
         document.getElementById('mensa-next').onclick = () => { currentDate.setDate(currentDate.getDate() + 1); fetchMenu(); };
 
-        fetchMenu();
+        // DSGVO: erst nach Einwilligung Daten von raw.githubusercontent.com laden
+        const mensaContent = document.getElementById('mensa-content');
+        const navButtons = ['mensa-prev', 'mensa-next'].map(id => document.getElementById(id));
+        navButtons.forEach(b => b.disabled = true);
+        Krankomat.Utils.requireExternalConsent('mensa', mensaContent, {
+            title: 'Speiseplan laden?',
+            provider: 'GitHub Inc., USA',
+            host: 'raw.githubusercontent.com'
+        }, () => {
+            navButtons.forEach(b => b.disabled = false);
+            fetchMenu();
+        });
     },
 
     renderMensaContent: function(contentEl, footerEl, menuData) {

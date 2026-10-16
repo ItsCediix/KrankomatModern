@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Datenschutzhinweise – Krankomat Modern</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/tailwind.css">
+    <script>
+      // Gleiches Farbschema wie die App (nur lokal gespeicherte Einstellung, keine externen Abrufe)
+      try {
+        const t = localStorage.getItem('theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body class="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-300 font-sans">
+    <main class="max-w-3xl mx-auto px-4 py-10">
+      <a href="./" class="text-sm text-blue-600 dark:text-blue-400 underline">&larr; Zurück zum Krankomat</a>
+
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 sm:p-8 mt-4 space-y-6 text-sm leading-relaxed">
+        <header>
+          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Datenschutzhinweise</h1>
+          <p class="text-xs font-mono text-slate-500 mt-1">Stand: 16.10.2026</p>
+        </header>
+
+        <section>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">1. Verantwortlicher</h2>
+          <p>Verantwortlich im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:<br>
+            Cederic Langpaap<br>
+            E-Mail: [KONTAKT-E-MAIL]</p>
+        </section>
+
+        <section>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">2. Grundsatz: Deine Eingaben bleiben auf deinem Gerät</h2>
+          <p>Der Krankomat ist eine reine E-Mail-Schreibhilfe, die vollständig in deinem Browser läuft. Alle Angaben, die du eingibst
+            (z. B. Name, Krankheitszeitraum, Abwesenheitsgründe, Empfänger, Stundenplan, Einstellungen), werden ausschließlich
+            lokal im Speicher deines Browsers (<em>localStorage</em>) abgelegt. Sie werden <strong>nicht</strong> an den Verantwortlichen
+            oder an Dritte übertragen. Es gibt keinen Server, der diese Daten empfängt.</p>
+          <p class="mt-2">Die lokale Speicherung ist für die von dir gewünschte Funktion (Wiederherstellen deiner Eingaben und Einstellungen)
+            unbedingt erforderlich und erfolgt auf Grundlage von § 25 Abs. 2 Nr. 2 TDDDG. Du kannst diese Daten jederzeit löschen,
+            indem du die Websitedaten dieser Seite in deinem Browser entfernst.</p>
+          <p class="mt-2">Es werden keine Cookies, keine Analyse- oder Trackingdienste und keine extern geladenen Schriftarten,
+            Skripte oder Stylesheets verwendet.</p>
+        </section>
+
+        <section>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">3. Hosting über GitHub Pages</h2>
+          <p>Diese Seite wird über GitHub Pages bereitgestellt (GitHub Inc., USA).
+            Beim Aufruf protokolliert GitHub laut eigener Angabe die IP-Adresse der Besucher zu Sicherheitszwecken.
+            Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO; das berechtigte Interesse liegt in der sicheren und
+            zuverlässigen Bereitstellung der Seite. GitHub ist nach dem EU-U.S. Data Privacy Framework zertifiziert
+            (Angemessenheitsbeschluss gemäß Art. 45 DSGVO). Weitere Informationen:
+            <a class="text-blue-600 dark:text-blue-400 underline" href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">Datenschutzerklärung von GitHub</a>.</p>
+        </section>
+
+        <section>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">4. Externe Inhalte nur nach Einwilligung</h2>
+          <p>Zwei optionale Funktionen laden Daten direkt von Servern Dritter. Dabei wird technisch bedingt deine IP-Adresse an
+            den jeweiligen Anbieter übertragen. Diese Abrufe erfolgen erst, nachdem du im jeweiligen Fenster auf
+            „Inhalte laden“ geklickt hast (Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG):</p>
+          <ul class="list-disc pl-5 mt-2 space-y-1">
+            <li><strong>Mensa-Speiseplan:</strong> Abruf von <code>raw.githubusercontent.com</code> (GitHub Inc., USA, siehe Abschnitt 3).</li>
+            <li><strong>HVV-Abfahrten:</strong> Abruf von <code>www.hvv.de</code> (Hamburger Verkehrsverbund GmbH, Hamburg).</li>
+          </ul>
+          <p class="mt-2">Wenn du „Auswahl merken“ aktivierst, wird deine Einwilligung lokal in deinem Browser gespeichert.
+            Du kannst sie jederzeit mit Wirkung für die Zukunft widerrufen:</p>
+          <div class="mt-3 flex items-center gap-3 flex-wrap">
+            <button id="revoke-consent" type="button" class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-medium transition-colors">Einwilligungen widerrufen</button>
+            <span id="revoke-status" class="text-xs text-slate-500" aria-live="polite"></span>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">5. Öffnen der E-Mail</h2>
+          <p>Der Krankomat versendet selbst keine E-Mails. Erst wenn du auf einen der E-Mail-Buttons klickst, wird der
+            vorbereitete Text an dein E-Mail-Programm (<em>mailto</em>) bzw. an Outlook im Web (<code>outlook.office.com</code>,
+            Microsoft) übergeben. Für die weitere Verarbeitung gelten die Datenschutzbestimmungen deines E-Mail-Anbieters.
+            Bitte gib in der Nachricht nur die Angaben an, die für die Krankmeldung wirklich nötig sind.</p>
+        </section>
+
+        <section>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">6. Deine Rechte</h2>
+          <p>Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der
+            Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21 DSGVO) sowie das Recht, eine erteilte
+            Einwilligung jederzeit zu widerrufen (Art. 7 Abs. 3 DSGVO). Außerdem kannst du dich bei einer
+            Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), z. B. beim Hamburgischen Beauftragten für Datenschutz
+            und Informationsfreiheit.</p>
+        </section>
+      </div>
+    </main>
+    <script>
+      document.getElementById('revoke-consent').addEventListener('click', () => {
+        let removed = 0;
+        try {
+          Object.keys(localStorage).filter(k => k.startsWith('krankomat_consent_')).forEach(k => { localStorage.removeItem(k); removed++; });
+        } catch (e) {}
+        document.getElementById('revoke-status').textContent = removed
+          ? 'Einwilligungen widerrufen. Externe Inhalte werden erst nach erneuter Zustimmung geladen.'
+          : 'Es waren keine Einwilligungen gespeichert.';
+      });
+    </script>
+  </body>
+</html>
