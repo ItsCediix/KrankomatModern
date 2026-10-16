@@ -32,13 +32,9 @@ Krankomat.App = {
         this.renderHeaderTitle();
     },
 
-    checkParallelCourses: function(forceShow = false) {
+    // Liefert alle Gruppen von Kursen, die zur selben Zeit stattfinden (leer, wenn keine)
+    findParallelGroups: function() {
         const events = Krankomat.State.data.calendarEvents || [];
-        if (events.length === 0) return;
-        
-        const config = Krankomat.State.get('config') || {};
-        if (config.parallelResolved && !forceShow) return;
-        
         const groups = {};
         events.forEach(e => {
             if (!e.start || !e.summary) return;
@@ -69,6 +65,17 @@ Krankomat.App = {
                 uniqueGroups.push(group);
             }
         });
+        return uniqueGroups;
+    },
+
+    checkParallelCourses: function(forceShow = false) {
+        const events = Krankomat.State.data.calendarEvents || [];
+        if (events.length === 0) return;
+        
+        const config = Krankomat.State.get('config') || {};
+        if (config.parallelResolved && !forceShow) return;
+        
+        const uniqueGroups = this.findParallelGroups();
         
         if (uniqueGroups.length > 0) {
             this.renderParallelModal(uniqueGroups);
@@ -345,6 +352,17 @@ Krankomat.App = {
         if (btn) btn.addEventListener('click', toggle);
     },
 
+    // Graut "Parallelkurse verwalten" aus, solange es keine parallelen Kurse gibt
+    updateParallelButton: function() {
+        const btn = document.getElementById('manage-parallel-btn');
+        const hint = document.getElementById('manage-parallel-hint');
+        if (!btn) return;
+        const hasParallel = this.findParallelGroups().length > 0;
+        btn.disabled = !hasParallel;
+        btn.title = hasParallel ? '' : 'Keine parallelen Kurse im Stundenplan gefunden';
+        if (hint) hint.classList.toggle('hidden', hasParallel);
+    },
+
     renderSettingsModal: function(container) {
         // Retrieve current config
         const config = Krankomat.State.get('config') || {};
@@ -504,9 +522,10 @@ Krankomat.App = {
                         <span class="mt-2 text-xs font-bold">.ics Datei auswählen</span>
                         <input type='file' id="settings-ics-upload" class="hidden" accept=".ics" />
                     </label>
-                    <button id="manage-parallel-btn" class="mt-3 w-full py-2 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 text-slate-700 dark:text-slate-200 rounded-md text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-500 transition-colors flex items-center justify-center">
+                    <button id="manage-parallel-btn" class="mt-3 w-full py-2 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 text-slate-700 dark:text-slate-200 rounded-md text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-500 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-slate-600">
                         Parallelkurse verwalten
                     </button>
+                    <p id="manage-parallel-hint" class="hidden mt-1.5 text-xs text-center text-slate-500 dark:text-slate-400">Keine parallelen Kurse im Stundenplan gefunden.</p>
                   </div>
                 </div>
              </div>
@@ -541,9 +560,19 @@ Krankomat.App = {
         const manageParallelBtn = document.getElementById('manage-parallel-btn');
         if (manageParallelBtn) {
             manageParallelBtn.onclick = () => {
+                if (Krankomat.App.findParallelGroups().length === 0) {
+                    Krankomat.App.updateParallelButton();
+                    return;
+                }
                 container.innerHTML = ''; // Close settings modal
                 Krankomat.App.checkParallelCourses(true);
             };
+            Krankomat.App.updateParallelButton();
+            // Nach einem Stundenplan-Upload im offenen Dialog den Knopf neu bewerten (nur einmal registrieren)
+            if (!Krankomat.App._parallelButtonSubscribed) {
+                Krankomat.App._parallelButtonSubscribed = true;
+                Krankomat.State.subscribe(() => Krankomat.App.updateParallelButton());
+            }
         }
 
         // Bind Show All Recipients Toggle

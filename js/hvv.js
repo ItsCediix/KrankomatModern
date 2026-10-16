@@ -1,4 +1,17 @@
 const KrankomatHVV = {
+    // Linienfarben der Hamburger U- und S-Bahn (bg = Hintergrund, text = Schriftfarbe)
+    LINE_COLORS: {
+        U1: { bg: '#0066B3', text: '#ffffff' },
+        U2: { bg: '#E2001A', text: '#ffffff' },
+        U3: { bg: '#FFD500', text: '#1e1e1e' },
+        U4: { bg: '#009A93', text: '#ffffff' },
+        S1: { bg: '#00962C', text: '#ffffff' },
+        S2: { bg: '#B51143', text: '#ffffff' },
+        S3: { bg: '#622181', text: '#ffffff' },
+        S5: { bg: '#0089C4', text: '#ffffff' },
+        S7: { bg: '#E07D17', text: '#ffffff' }
+    },
+
     init: function() {
         this.bindEvents();
     },
@@ -173,6 +186,11 @@ const KrankomatHVV = {
             
             // Remove Client-Side logic, fetch all departures for Berliner Tor
             // Limit to 20 departures to avoid overwhelming the popup
+            // Nur Bahnen anzeigen (U- und S-Bahn), keine Busse
+            departures = departures.filter(dep => {
+                const type = dep.line && dep.line.type && dep.line.type.simpleType;
+                return type !== 'BUS';
+            });
             departures = departures.slice(0, 20);
             
             this.renderDepartures(departures, configData.stationList[0].name);
@@ -231,38 +249,30 @@ const KrankomatHVV = {
                 }
             }
 
-            // Determine color based on line type
-            let bgColor = 'bg-slate-200 dark:bg-slate-700';
-            let textColor = 'text-slate-800 dark:text-slate-200';
-            let iconHtml = lineName;
-            
-            if (lineName === 'S1' || lineName === 'S 1') {
-                iconHtml = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 661.6699 260.165" class="h-6 w-auto">
-                        <path d="M 137.5635,0 L 524.1065,0 C 600.0899,0 661.67,58.2461 661.67,130.0889 C 661.67,201.9307 600.0899,260.1651 524.1065,260.1651 L 137.5635,260.1651 C 61.5801,260.165 0,201.9307 0,130.0889 C 0,58.2461 61.5801,0 137.5635,0 z " style="fill:#00962c;fill-rule:evenodd"/>
-                        <path d="M 192.0244,200.5312 C 200.9951,205.2763 219.4805,210.2724 238.7002,210.2724 C 285.3789,210.2724 308.0889,186.0556 308.0889,156.5947 C 308.0889,134.3847 295.3711,117.9023 266.3965,106.4306 C 245.4414,98.1826 237.4444,94.4452 237.4444,85.7001 C 237.4444,78.2138 244.9434,72.7216 258.6583,72.7216 C 274.1554,72.7216 285.8761,77.205 292.6183,80.4677 L 301.3507,45.2646 C 291.3585,40.7666 277.6437,37.0302 258.921,37.0302 C 217.2276,37.0302 193.5206,59.9892 193.5206,89.4501 C 193.5206,112.4101 209.9884,128.3925 238.2032,139.3778 C 256.4288,146.3544 263.9024,151.1034 263.9024,159.8456 C 263.9024,168.579 256.4288,174.3222 240.9561,174.3222 C 225.46,174.3222 209.7286,169.3271 199.9991,164.3447 L 192.0244,200.5312 z " style="fill:#ffffff;fill-rule:evenodd"/>
-                        <polygon points="406.877,208.1123 450.208,208.1123 450.208,40.4834 413.0713,40.4834 366.8916,61.3779 374.1064,95.1582 406.3564,80.1963 406.877,80.1963 406.877,208.1123 " style="fill:#ffffff;fill-rule:evenodd"/>
-                    </svg>
-                `;
-                bgColor = 'bg-transparent';
-                textColor = '';
-            } else if (lineName.startsWith('S')) {
-                bgColor = 'bg-[#00962c]';
-                textColor = 'text-white';
-            } else if (lineName.startsWith('U')) {
-                bgColor = 'bg-[#003087]';
-                textColor = 'text-white';
-            } else if (dep.line && dep.line.type && dep.line.type.simpleType === 'BUS') {
-                bgColor = 'bg-[#E3001B]';
-                textColor = 'text-white';
+            // Linien-Badge im HVV-Stil: S-Bahn als abgerundete Pille, U-Bahn als eckiges Rechteck,
+            // jeweils in der Linienfarbe (Farben zentral in LINE_COLORS pflegen)
+            const lineKey = lineName.replace(/\s+/g, '');
+            const color = KrankomatHVV.LINE_COLORS[lineKey];
+            let badgeShape = 'rounded-md';
+            let badgeStyle = '';
+            let badgeClasses = 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200';
+            if (/^S\d/.test(lineKey)) {
+                badgeShape = 'rounded-full';
+            } else if (/^U\d/.test(lineKey)) {
+                badgeShape = 'rounded-none';
             }
+            if (color) {
+                badgeStyle = `background-color:${color.bg};color:${color.text};`;
+                badgeClasses = '';
+            }
+            const iconHtml = lineKey;
 
             const platform = dep.realtimePlatform || dep.platform || '';
 
             html += `
                 <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors ${isCancelled ? 'opacity-60' : ''}">
                     <div class="flex items-center space-x-4 overflow-hidden">
-                        <div class="${bgColor} ${textColor} font-bold ${(lineName === 'S1' || lineName === 'S 1') ? '' : 'px-3 py-1'} rounded min-w-[3rem] text-center flex-shrink-0 flex items-center justify-center">
+                        <div class="${badgeClasses} ${badgeShape} font-bold text-sm leading-none px-2.5 py-1.5 min-w-[3rem] text-center flex-shrink-0 flex items-center justify-center tracking-tight" style="${badgeStyle}">
                             ${iconHtml}
                         </div>
                         <div class="truncate">
