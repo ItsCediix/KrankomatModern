@@ -158,7 +158,7 @@ Krankomat.App = {
 
     renderHeaderVisibility: function() {
         const config = Krankomat.State.get('config') || {};
-        const buttons = config.headerButtons || { fileshare: true, calendar: true, mensa: true, verify: true, hvv: true };
+        const buttons = config.headerButtons || { fileshare: false, calendar: true, mensa: true, verify: false, hvv: true };
 
         const setVisibility = (id, isVisible) => {
             const el = document.getElementById(id);
@@ -283,9 +283,11 @@ Krankomat.App = {
           <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md transition-all duration-500">
              <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full flex flex-col border border-slate-200 dark:border-slate-700 animate-scale-in">
                 <div class="p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-t-2xl text-center">
-                   <div class="mx-auto h-12 w-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mb-4">
-                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-indigo-600 dark:text-indigo-400">
-                       <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 01.67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 11-.671-1.34l.041-.022zM12 9a.75.75 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                   <div class="mx-auto h-12 w-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-2xl flex items-center justify-center mb-4">
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-indigo-600 dark:text-indigo-400" aria-hidden="true">
+                       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/>
+                       <path d="M14 3v5h5"/>
+                       <path d="M9 15l2 2 4-4"/>
                      </svg>
                    </div>
                    <h2 class="text-xl font-bold text-slate-800 dark:text-white">Nutzungsbedingungen</h2>
@@ -301,6 +303,9 @@ Krankomat.App = {
                        <path d="M12.971 1.816A5.23 5.23 0 0114.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 013.434 1.279 9.768 9.768 0 00-6.963-6.963z" />
                      </svg>
                      Nutzungsbedingungen lesen
+                   </a>
+                   <a href="datenschutz.html" target="_blank" rel="noopener" class="inline-block text-xs text-slate-500 dark:text-slate-400 underline underline-offset-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                     Datenschutzhinweise
                    </a>
                 </div>
                 <div class="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl">
@@ -343,7 +348,7 @@ Krankomat.App = {
     renderSettingsModal: function(container) {
         // Retrieve current config
         const config = Krankomat.State.get('config') || {};
-        const buttons = config.headerButtons || { fileshare: true, calendar: true, mensa: true, verify: true };
+        const buttons = config.headerButtons || { fileshare: false, calendar: true, mensa: true, verify: false };
         const verifyLink = config.verifyLink || "";
         const supportEmail = config.supportEmail || "";
         const showAll = config.showAllRecipients || false;
